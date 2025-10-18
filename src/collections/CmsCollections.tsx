@@ -171,6 +171,7 @@ const buildProperty = (config?: CmsPropertyConfig): DynamicProperty | undefined 
 
     if (config.localized && config.dataType === STRING_DATA_TYPE) {
         return {
+            ...base,
             dataType: MAP_DATA_TYPE,
             expanded: PROPERTY_EXPANDED,
             properties: SUPPORTED_LOCALES.reduce((acc, locale) => {
