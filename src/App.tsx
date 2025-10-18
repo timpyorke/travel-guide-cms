@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { FirebaseApp } from "firebase/app";
 
 import {
@@ -14,6 +14,7 @@ import {
     useBuildLocalConfigurationPersistence,
     useBuildModeController,
     useBuildNavigationController,
+    useCustomizationController,
     useValidateAuthenticator
 } from "@firecms/core";
 import {
@@ -28,15 +29,17 @@ import {
 } from "@firecms/firebase";
 import { CenteredView, Button, Typography } from "@firecms/ui";
 import { useCmsCollections } from "./collections/CmsCollections";
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from "./localization";
 
 import { firebaseConfig } from "./firebase_config";
 import { CmsCollectionForm } from "./components/CmsCollectionForm";
 import { CmsCollectionsManager } from "./components/CmsCollectionsManager";
 import { StorageBrowser } from "./components/storage/StorageBrowser";
 import { Link, Route, useParams } from "react-router-dom";
-import { useEffect } from "react";
 import { useSnackbarController } from "@firecms/core";
 import { SnackbarProvider as NotistackSnackbarProvider } from "notistack";
+
+const LOCALE_STORAGE_KEY = "cms_active_locale";
 
 const CustomSnackbarProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     <NotistackSnackbarProvider
@@ -117,11 +120,24 @@ function AppContent() {
         storageSource
     });
 
+    const [activeLocale, setActiveLocale] = useState<string>(() => {
+        if (typeof window !== "undefined") {
+            return localStorage.getItem(LOCALE_STORAGE_KEY) || DEFAULT_LOCALE;
+        }
+        return DEFAULT_LOCALE;
+    });
+
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            localStorage.setItem(LOCALE_STORAGE_KEY, activeLocale);
+        }
+    }, [activeLocale]);
+
     const {
         collections: cmsCollections,
         loading: cmsCollectionsLoading,
         error: cmsCollectionsError
-    } = useCmsCollections(firebaseApp);
+    } = useCmsCollections(firebaseApp, activeLocale);
 
     const storageViews = useMemo(() => {
         if (!firebaseApp) return [];
@@ -176,6 +192,10 @@ function AppContent() {
                     context,
                     loading
                 }) => {
+                    const customizationController = useCustomizationController();
+                    if (customizationController) {
+                        customizationController.locale = activeLocale as any;
+                    }
 
                     if (loading || authLoading || cmsCollectionsLoading) {
                         return <CircularProgressCenter size={"large"} />;
@@ -210,6 +230,15 @@ function AppContent() {
                                     >
                                         New collection
                                     </Button>
+                                    <select
+                                        className="border border-surface-300 dark:border-surface-700 rounded-md px-2 py-1 text-sm bg-white dark:bg-surface-900"
+                                        value={activeLocale}
+                                        onChange={(event) => setActiveLocale(event.target.value)}
+                                    >
+                                        {SUPPORTED_LOCALES.map((locale) => (
+                                            <option key={locale.code} value={locale.code}>{locale.label}</option>
+                                        ))}
+                                    </select>
                                 </div>
                             }
                         />

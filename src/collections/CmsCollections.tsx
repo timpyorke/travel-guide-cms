@@ -8,6 +8,7 @@ import {
     QueryDocumentSnapshot
 } from "firebase/firestore";
 import { EntityCollection } from "@firecms/core";
+import { DEFAULT_LOCALE } from "../localization";
 
 export type CmsCollectionPermissions = {
     read?: boolean;
@@ -42,6 +43,13 @@ export type CmsPropertyConfig = {
     defaultValue?: string;
 };
 
+export type CmsCollectionLocalization = {
+    name?: string;
+    singularName?: string;
+    description?: string;
+    group?: string;
+};
+
 export type CmsCollectionConfig = {
     id?: string;
     name?: string;
@@ -52,6 +60,7 @@ export type CmsCollectionConfig = {
     icon?: string;
     permissions?: CmsCollectionPermissions;
     properties?: CmsPropertyConfig[];
+    localizations?: Record<string, CmsCollectionLocalization>;
 };
 
 export const DEFAULT_CMS_COLLECTION_PERMISSIONS = {
@@ -165,7 +174,7 @@ const buildProperty = (config?: CmsPropertyConfig) => {
     return base;
 };
 
-const snapshotToEntityCollection = (snapshot: QueryDocumentSnapshot<DocumentData>): EntityCollection | undefined => {
+const snapshotToEntityCollection = (snapshot: QueryDocumentSnapshot<DocumentData>, locale?: string): EntityCollection | undefined => {
     const data = snapshot.data() as CmsCollectionConfig;
 
     if (!isNonEmptyString(data.id) || !isNonEmptyString(data.path) || !isNonEmptyString(data.name)) {
@@ -187,13 +196,22 @@ const snapshotToEntityCollection = (snapshot: QueryDocumentSnapshot<DocumentData
 
     const permissions = normalizePermissions(data.permissions);
 
+    const activeLocale = locale || DEFAULT_LOCALE;
+    const localization = data.localizations?.[activeLocale];
+
+    const getLocalizedValue = (base?: string, localized?: string) => {
+        const localizedTrimmed = localized?.trim();
+        if (localizedTrimmed) return localizedTrimmed;
+        return base?.trim();
+    };
+
     return {
         id: data.id.trim(),
         path: data.path.trim(),
-        name: data.name.trim(),
-        singularName: isNonEmptyString(data.singularName) ? data.singularName.trim() : undefined,
-        description: isNonEmptyString(data.description) ? data.description.trim() : undefined,
-        group: isNonEmptyString(data.group) ? data.group.trim() : undefined,
+        name: getLocalizedValue(data.name, localization?.name) ?? "",
+        singularName: getLocalizedValue(data.singularName, localization?.singularName),
+        description: getLocalizedValue(data.description, localization?.description),
+        group: getLocalizedValue(data.group, localization?.group),
         icon: data.icon,
         permissions,
         properties
@@ -206,7 +224,7 @@ export type CmsCollectionsResult = {
     error?: Error;
 };
 
-export const useCmsCollections = (firebaseApp: FirebaseApp | undefined | null): CmsCollectionsResult => {
+export const useCmsCollections = (firebaseApp: FirebaseApp | undefined | null, locale?: string): CmsCollectionsResult => {
     const [collections, setCollections] = useState<EntityCollection[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<Error>();
@@ -225,7 +243,7 @@ export const useCmsCollections = (firebaseApp: FirebaseApp | undefined | null): 
 
         const unsubscribe = onSnapshot(cmsCollectionsRef, (snapshot) => {
             const parsedCollections = snapshot.docs
-                .map(snapshotToEntityCollection)
+                .map(doc => snapshotToEntityCollection(doc, locale))
                 .filter((collection): collection is EntityCollection => !!collection);
 
             setCollections(parsedCollections);
@@ -239,7 +257,7 @@ export const useCmsCollections = (firebaseApp: FirebaseApp | undefined | null): 
         });
 
         return () => unsubscribe();
-    }, [firebaseApp]);
+    }, [firebaseApp, locale]);
 
     return useMemo(() => ({
         collections,

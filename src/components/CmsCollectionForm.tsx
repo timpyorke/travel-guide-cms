@@ -15,7 +15,7 @@ import {
     TextField,
     Typography
 } from "@firecms/ui";
-const NONE_ICON_VALUE = "__none__";
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from "../localization";
 
 const ICON_OPTIONS = [
     "place",
@@ -33,6 +33,7 @@ const ICON_OPTIONS = [
     "celebration",
     "local_activity"
 ] as const;
+
 import { useSnackbarController } from "@firecms/core";
 import { StorageBrowserDialog } from "./storage/StorageBrowser";
 import type {
@@ -83,12 +84,14 @@ type PropertyFormState = {
 type FormState = {
     collectionId: string;
     name: string;
+    singularName: string;
     path: string;
     group: string;
     icon: string;
     description: string;
     permissions: PermissionState;
     properties: PropertyFormState[];
+    localizations: Record<string, LocalizationFormState>;
 };
 
 type StoragePickerState = {
@@ -96,6 +99,27 @@ type StoragePickerState = {
     target: "storagePath" | "defaultValue";
     selectionMode: "file" | "folder";
     initialPath?: string;
+};
+
+type LocalizationFormState = {
+    name: string;
+    singularName: string;
+    description: string;
+    group: string;
+};
+
+const emptyLocalization = (): LocalizationFormState => ({
+    name: "",
+    singularName: "",
+    description: "",
+    group: ""
+});
+
+const buildEmptyLocalizations = (): Record<string, LocalizationFormState> => {
+    return SUPPORTED_LOCALES.reduce((acc, { code }) => {
+        acc[code] = emptyLocalization();
+        return acc;
+    }, {} as Record<string, LocalizationFormState>);
 };
 
 const createEmptyProperty = (): PropertyFormState => ({
@@ -120,6 +144,7 @@ const createEmptyProperty = (): PropertyFormState => ({
 const createEmptyFormState = (): FormState => ({
     collectionId: "",
     name: "",
+    singularName: "",
     path: "",
     group: "",
     icon: "",
@@ -130,7 +155,8 @@ const createEmptyFormState = (): FormState => ({
         edit: DEFAULT_CMS_COLLECTION_PERMISSIONS.edit,
         delete: DEFAULT_CMS_COLLECTION_PERMISSIONS.delete
     },
-    properties: [createEmptyProperty()]
+    properties: [createEmptyProperty()],
+    localizations: buildEmptyLocalizations()
 });
 
 const cloneFormState = (state: FormState): FormState => ({
@@ -140,7 +166,11 @@ const cloneFormState = (state: FormState): FormState => ({
         ...property,
         enumValues: [...property.enumValues],
         arrayEnumValues: [...property.arrayEnumValues]
-    }))
+    })),
+    localizations: Object.entries(state.localizations).reduce((acc, [locale, values]) => {
+        acc[locale] = { ...values };
+        return acc;
+    }, {} as Record<string, LocalizationFormState>)
 });
 
 const enumValuesToList = (enumValues?: Record<string, string>): string[] =>
@@ -203,6 +233,7 @@ const cmsPropertyToFormState = (propertyConfig?: CmsPropertyConfig): PropertyFor
 const cmsConfigToFormState = (config: CmsCollectionConfig): FormState => ({
     collectionId: config.id?.trim() ?? "",
     name: config.name?.trim() ?? "",
+    singularName: config.singularName?.trim() ?? "",
     path: config.path?.trim() ?? "",
     group: config.group?.trim() ?? "",
     icon: config.icon?.toString().trim() ?? "",
@@ -215,13 +246,31 @@ const cmsConfigToFormState = (config: CmsCollectionConfig): FormState => ({
     },
     properties: Array.isArray(config.properties) && config.properties.length > 0
         ? config.properties.map(cmsPropertyToFormState)
-        : [createEmptyProperty()]
+        : [createEmptyProperty()],
+    localizations: (() => {
+        const localizationState = buildEmptyLocalizations();
+        SUPPORTED_LOCALES.forEach(({ code }) => {
+            const localized = config.localizations?.[code];
+            if (localized?.name) localizationState[code].name = localized.name;
+            if (localized?.singularName) localizationState[code].singularName = localized.singularName;
+            if (localized?.description) localizationState[code].description = localized.description;
+            if (localized?.group) localizationState[code].group = localized.group;
+        });
+        localizationState[DEFAULT_LOCALE] = {
+            name: config.name?.trim() ?? localizationState[DEFAULT_LOCALE].name,
+            singularName: config.singularName?.trim() ?? localizationState[DEFAULT_LOCALE].singularName,
+            description: config.description?.trim() ?? localizationState[DEFAULT_LOCALE].description,
+            group: config.group?.trim() ?? localizationState[DEFAULT_LOCALE].group
+        };
+        return localizationState;
+    })()
 });
 
 const sanitizeFormState = (state: FormState): FormState => ({
     ...state,
     collectionId: state.collectionId.trim(),
     name: state.name.trim(),
+    singularName: state.singularName.trim(),
     path: state.path.trim(),
     group: state.group.trim(),
     icon: state.icon.trim(),
@@ -244,7 +293,16 @@ const sanitizeFormState = (state: FormState): FormState => ({
             .join(", "),
         storageMaxSize: property.storageMaxSize.trim(),
         defaultValue: property.defaultValue.trim()
-    }))
+    })),
+    localizations: Object.entries(state.localizations).reduce((acc, [locale, values]) => {
+        acc[locale] = {
+            name: values.name.trim(),
+            singularName: values.singularName.trim(),
+            description: values.description.trim(),
+            group: values.group.trim()
+        };
+        return acc;
+    }, {} as Record<string, LocalizationFormState>)
 });
 
 const validateForm = (state: FormState): string | null => {
@@ -449,6 +507,30 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
         }));
     };
 
+    const handleLocalizationChange = (localeCode: string, field: keyof LocalizationFormState, value: string) => {
+        setFormState((current) => {
+            const entry = current.localizations[localeCode] ?? emptyLocalization();
+            const updatedLocalizations = {
+                ...current.localizations,
+                [localeCode]: {
+                    ...entry,
+                    [field]: value
+                }
+            };
+            const updatedState: FormState = {
+                ...current,
+                localizations: updatedLocalizations
+            };
+            if (localeCode === DEFAULT_LOCALE) {
+                if (field === "name") updatedState.name = value;
+                if (field === "singularName") updatedState.singularName = value;
+                if (field === "description") updatedState.description = value;
+                if (field === "group") updatedState.group = value;
+            }
+            return updatedState;
+        });
+    };
+
     const handlePropertyChange = <K extends keyof PropertyFormState>(index: number, key: K, value: PropertyFormState[K]) => {
         setFormState((current) => {
             const properties = current.properties.map((property, propertyIndex) => {
@@ -588,6 +670,7 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
             const payload = {
                 id: sanitizedState.collectionId,
                 name: sanitizedState.name,
+                singularName: sanitizedState.singularName || undefined,
                 description: sanitizedState.description || undefined,
                 path: sanitizedState.path,
                 group: sanitizedState.group || undefined,
@@ -595,6 +678,23 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                 permissions: buildPermissionsPayload(sanitizedState.permissions),
                 properties: sanitizedState.properties.map(buildPropertyPayload)
             };
+
+            const localizationPayload = Object.entries(sanitizedState.localizations).reduce((acc, [locale, values]) => {
+                if (locale === DEFAULT_LOCALE) return acc;
+                const entries: Record<string, string> = {};
+                if (values.name) entries.name = values.name;
+                if (values.singularName) entries.singularName = values.singularName;
+                if (values.description) entries.description = values.description;
+                if (values.group) entries.group = values.group;
+                if (Object.keys(entries).length > 0) {
+                    acc[locale] = entries;
+                }
+                return acc;
+            }, {} as Record<string, Record<string, string>>);
+
+            if (Object.keys(localizationPayload).length > 0) {
+                (payload as any).localizations = localizationPayload;
+            }
 
             await setDoc(doc(firestore, "cms_collections", sanitizedState.collectionId), payload);
 
@@ -683,12 +783,44 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                         <TextField
                             label="Display name"
                             value={formState.name}
-                            onChange={(event) => setFormState((current) => ({
-                                ...current,
-                                name: event.target.value
-                            }))}
+                            onChange={(event) => setFormState((current) => {
+                                const value = event.target.value;
+                                const defaultLocalization = current.localizations[DEFAULT_LOCALE] ?? emptyLocalization();
+                                return {
+                                    ...current,
+                                    name: value,
+                                    localizations: {
+                                        ...current.localizations,
+                                        [DEFAULT_LOCALE]: {
+                                            ...defaultLocalization,
+                                            name: value
+                                        }
+                                    }
+                                };
+                            })}
                             placeholder="Locations"
                             required
+                            disabled={formBusy}
+                        />
+                        <TextField
+                            label="Singular name (optional)"
+                            value={formState.singularName}
+                            onChange={(event) => setFormState((current) => {
+                                const value = event.target.value;
+                                const defaultLocalization = current.localizations[DEFAULT_LOCALE] ?? emptyLocalization();
+                                return {
+                                    ...current,
+                                    singularName: value,
+                                    localizations: {
+                                        ...current.localizations,
+                                        [DEFAULT_LOCALE]: {
+                                            ...defaultLocalization,
+                                            singularName: value
+                                        }
+                                    }
+                                };
+                            })}
+                            placeholder="Location"
                             disabled={formBusy}
                         />
                         <TextField
@@ -705,10 +837,21 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                         <TextField
                             label="Group (optional)"
                             value={formState.group}
-                            onChange={(event) => setFormState((current) => ({
-                                ...current,
-                                group: event.target.value
-                            }))}
+                            onChange={(event) => setFormState((current) => {
+                                const value = event.target.value;
+                                const defaultLocalization = current.localizations[DEFAULT_LOCALE] ?? emptyLocalization();
+                                return {
+                                    ...current,
+                                    group: value,
+                                    localizations: {
+                                        ...current.localizations,
+                                        [DEFAULT_LOCALE]: {
+                                            ...defaultLocalization,
+                                            group: value
+                                        }
+                                    }
+                                };
+                            })}
                             placeholder="Travel"
                             disabled={formBusy}
                         />
@@ -742,13 +885,70 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                         multiline
                         minRows={3}
                         value={formState.description}
-                        onChange={(event) => setFormState((current) => ({
-                            ...current,
-                            description: event.target.value
-                        }))}
+                        onChange={(event) => setFormState((current) => {
+                            const value = event.target.value;
+                            const defaultLocalization = current.localizations[DEFAULT_LOCALE] ?? emptyLocalization();
+                            return {
+                                ...current,
+                                description: value,
+                                localizations: {
+                                    ...current.localizations,
+                                    [DEFAULT_LOCALE]: {
+                                        ...defaultLocalization,
+                                        description: value
+                                    }
+                                }
+                            };
+                        })}
                         placeholder="Explain the purpose of this collection for other editors."
                         disabled={formBusy}
                     />
+
+                    {SUPPORTED_LOCALES.filter((locale) => locale.code !== DEFAULT_LOCALE).length > 0 && (
+                        <section className="flex flex-col gap-4">
+                            <Typography variant="subtitle1" className="mt-2">Localized content</Typography>
+                            {SUPPORTED_LOCALES.filter((locale) => locale.code !== DEFAULT_LOCALE).map((locale) => {
+                                const localization = formState.localizations[locale.code] ?? emptyLocalization();
+                                return (
+                                    <div key={locale.code} className="border border-surface-200 dark:border-surface-700 rounded-md p-4 flex flex-col gap-3">
+                                        <Typography variant="subtitle2">{locale.label}</Typography>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            <TextField
+                                                label="Name"
+                                                value={localization.name}
+                                                onChange={(event) => handleLocalizationChange(locale.code, "name", event.target.value)}
+                                                placeholder="Localized name"
+                                                disabled={formBusy}
+                                            />
+                                            <TextField
+                                                label="Singular name"
+                                                value={localization.singularName}
+                                                onChange={(event) => handleLocalizationChange(locale.code, "singularName", event.target.value)}
+                                                placeholder="Localized singular"
+                                                disabled={formBusy}
+                                            />
+                                            <TextField
+                                                label="Group"
+                                                value={localization.group}
+                                                onChange={(event) => handleLocalizationChange(locale.code, "group", event.target.value)}
+                                                placeholder="Localized group"
+                                                disabled={formBusy}
+                                            />
+                                            <TextField
+                                                label="Description"
+                                                multiline
+                                                minRows={2}
+                                                value={localization.description}
+                                                onChange={(event) => handleLocalizationChange(locale.code, "description", event.target.value)}
+                                                placeholder="Localized description"
+                                                disabled={formBusy}
+                                            />
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </section>
+                    )}
 
                     <section>
                         <Typography variant="subtitle1" className="mb-2">Permissions</Typography>
