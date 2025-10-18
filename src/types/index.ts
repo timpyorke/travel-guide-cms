@@ -105,7 +105,47 @@ export interface CmsCollectionData {
     localizations?: Record<string, CmsCollectionLocalization>;
 }
 
-export interface CmsCollectionPermissions {
+export interface CmsCollectionConfig {
+    id?: string;
+    name?: string;
+    description?: string;
+    path?: string;
+    group?: string;
+    icon?: string;
+    permissions?: CmsCollectionPermissions;
+    properties?: CmsPropertyConfig[];
+    localizations?: Record<string, CmsCollectionLocalization>;
+}
+
+export interface CmsPropertyConfig {
+    key?: string;
+    name?: string;
+    description?: string;
+    dataType?: string;
+    required?: boolean;
+    enumValues?: Record<string, string>;
+    path?: string;
+    of?: CmsArrayPropertyConfig;
+    storage?: CmsStorageConfig;
+    defaultValue?: string;
+    localized?: boolean;
+    multiline?: boolean;
+    markdown?: boolean;
+    autoValue?: "on_create" | "on_update" | "on_create_update";
+}
+
+export interface CmsArrayPropertyConfig {
+    dataType?: string;
+    enumValues?: Record<string, string>;
+    path?: string;
+    storage?: CmsStorageConfig;
+}
+
+export interface CmsStorageConfig {
+    storagePath?: string;
+    acceptedFiles?: string[];
+    maxSize?: number;
+}export interface CmsCollectionPermissions {
     read: boolean;
     create: boolean;
     edit: boolean;

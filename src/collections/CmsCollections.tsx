@@ -229,7 +229,7 @@ const buildProperty = (config?: CmsPropertyConfig): DynamicProperty | undefined 
     return base;
 };
 
-const snapshotToEntityCollection = (snapshot: QueryDocumentSnapshot<DocumentData>, locale?: string): EntityCollection | undefined => {
+export const snapshotToEntityCollection = (snapshot: QueryDocumentSnapshot<DocumentData>, locale?: string): EntityCollection | undefined => {
     const data = snapshot.data() as CmsCollectionConfig;
 
     if (!isNonEmptyString(data.id) || !isNonEmptyString(data.path) || !isNonEmptyString(data.name)) {
