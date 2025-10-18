@@ -74,6 +74,29 @@ src/
 
 To add a new collection, create a file under `src/collections`, export it via `buildCollection`, and append it to the `collections` array in `src/App.tsx:36`.
 
+### Dynamic Collections
+- Firestore collection path `cms_collections` is watched at runtime (`src/hooks/useDynamicCollections.ts`) and merged into the CMS navigation automatically.
+- Each document should describe a collection using the schema in `src/types/dynamic_collections.ts`.
+- Example document payload:
+  ```json
+  {
+    "id": "locations",
+    "path": "locations",
+    "name": "Locations",
+    "group": "Travel",
+    "icon": "Place",
+    "permissions": { "read": true, "create": true, "edit": true, "delete": false },
+    "properties": [
+      { "key": "title", "dataType": "string", "required": true },
+      { "key": "slug", "dataType": "string", "description": "URL friendly identifier" },
+      { "key": "published", "dataType": "boolean" },
+      { "key": "heroImage", "dataType": "string", "name": "Hero image URL" },
+      { "key": "tags", "dataType": "array", "of": { "dataType": "string" } }
+    ]
+  }
+  ```
+- Supported property types: scalar (`string`, `number`, `boolean`, `date`, `date_time`), references, and arrays of strings or references (with optional enum values for string arrays). Invalid config entries are ignored with console warnings to avoid crashing the CMS.
+
 ## Authentication and Authorization
 - Firebase Authentication controls who can sign in. Update `signInOptions` in `src/App.tsx:51` to adjust providers.
 - Implement fine-grained access rules in the `permissions` block of each collection (see `src/collections/products.tsx:28`).
