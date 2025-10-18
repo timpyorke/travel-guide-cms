@@ -8,7 +8,7 @@ import {
     Paper,
     Typography
 } from "@firecms/ui";
-import { useCmsCollections } from "../collections/cmsColecctions";
+import { useCmsCollections } from "../collections/CmsCollections";
 
 export type CmsCollectionsManagerProps = {
     firebaseApp: FirebaseApp;

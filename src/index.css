@@ -17,3 +17,11 @@ a {
 
     @apply text-primary dark:text-primary
 }
+
+.notistack-SnackbarContainer {
+    top: 1.5rem !important;
+    bottom: auto !important;
+    right: 1.5rem !important;
+    left: auto !important;
+    align-items: flex-end !important;
+}

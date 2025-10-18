@@ -26,15 +26,14 @@ import {
     useInitialiseFirebase,
 } from "@firecms/firebase";
 import { CenteredView, Button } from "@firecms/ui";
-import { demoCollection } from "./collections/demo";
-import { productsCollection } from "./collections/products";
-import { useCmsCollections } from "./collections/cmsColecctions";
+import { useCmsCollections } from "./collections/CmsCollections";
 
 import { firebaseConfig } from "./firebase_config";
 import { CmsCollectionForm } from "./components/CmsCollectionForm";
 import { CmsCollectionsManager } from "./components/CmsCollectionsManager";
 import { Link, Route, useParams } from "react-router-dom";
 import { useEffect } from "react";
+import { useSnackbarController } from "@firecms/core";
 
 function App() {
 
@@ -102,11 +101,6 @@ function App() {
         storageSource
     });
 
-    const staticCollections = useMemo(() => [
-        demoCollection,
-        productsCollection
-    ], []);
-
     const {
         collections: cmsCollections,
         loading: cmsCollectionsLoading,
@@ -114,9 +108,8 @@ function App() {
     } = useCmsCollections(firebaseApp);
 
     const collections = useMemo(() => [
-        ...staticCollections,
-        ...cmsCollections
-    ], [cmsCollections, staticCollections]);
+        ...cmsCollections,
+    ], [cmsCollections]);
 
     const navigationController = useBuildNavigationController({
         disabled: authLoading || cmsCollectionsLoading,
@@ -124,8 +117,6 @@ function App() {
         authController,
         dataSourceDelegate: firestoreDelegate
     });
-
-    useEffect(() => { }, [cmsCollectionsError]);
 
     if (firebaseConfigLoading || !firebaseApp) {
         return <>
@@ -197,10 +188,8 @@ function App() {
                         />
                         <Drawer />
                         <NavigationRoutes>
-                            <Route
-                                path={"/cms/collections"}
-                                element={<CmsCollectionsManager firebaseApp={firebaseApp} />}
-                            />
+                            <Route path={"/cms/collections"}
+                                element={<CmsCollectionsManager firebaseApp={firebaseApp} />} />
                             <Route
                                 path={"/cms/collections/new"}
                                 element={<CmsCollectionForm firebaseApp={firebaseApp} />}
@@ -211,6 +200,7 @@ function App() {
                             />
                         </NavigationRoutes>
                         <SideDialogs />
+                        <CmsCollectionsErrorToast error={cmsCollectionsError} />
                     </Scaffold>;
                 }}
             </FireCMS>
@@ -218,5 +208,19 @@ function App() {
     );
 
 }
+
+const CmsCollectionsErrorToast: React.FC<{ error?: Error }> = ({ error }) => {
+    const snackbar = useSnackbarController();
+    useEffect(() => {
+        if (error) {
+            snackbar.open({
+                type: "error",
+                message: error.message ?? "Failed to load CMS collections",
+                autoHideDuration: 4500
+            });
+        }
+    }, [error, snackbar]);
+    return null;
+};
 
 export default App;

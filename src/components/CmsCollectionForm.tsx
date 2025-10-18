@@ -15,12 +15,13 @@ import {
     TextField,
     Typography
 } from "@firecms/ui";
+import { useSnackbarController } from "@firecms/core";
 import type {
     CmsCollectionConfig,
     CmsCollectionPermissions,
     CmsPropertyConfig
-} from "../collections/cmsColecctions";
-import { DEFAULT_CMS_COLLECTION_PERMISSIONS } from "../collections/cmsColecctions";
+} from "../collections/CmsCollections";
+import { DEFAULT_CMS_COLLECTION_PERMISSIONS } from "../collections/CmsCollections";
 
 type ScalarDataType =
     "string"
@@ -159,12 +160,12 @@ const cmsConfigToFormState = (config: CmsCollectionConfig): FormState => ({
         read: config.permissions?.read ?? DEFAULT_CMS_COLLECTION_PERMISSIONS.read,
         create: config.permissions?.create ?? DEFAULT_CMS_COLLECTION_PERMISSIONS.create,
         edit: config.permissions?.edit ?? DEFAULT_CMS_COLLECTION_PERMISSIONS.edit,
-            delete: config.permissions?.delete ?? DEFAULT_CMS_COLLECTION_PERMISSIONS.delete
-        },
-        properties: Array.isArray(config.properties) && config.properties.length > 0
-            ? config.properties.map(cmsPropertyToFormState)
-            : [createEmptyProperty()]
-    });
+        delete: config.permissions?.delete ?? DEFAULT_CMS_COLLECTION_PERMISSIONS.delete
+    },
+    properties: Array.isArray(config.properties) && config.properties.length > 0
+        ? config.properties.map(cmsPropertyToFormState)
+        : [createEmptyProperty()]
+});
 
 const sanitizeFormState = (state: FormState): FormState => ({
     ...state,
@@ -282,6 +283,7 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
     const firestore = useMemo(() => getFirestore(firebaseApp), [firebaseApp]);
     const navigate = useNavigate();
     const isEditMode = Boolean(initialCollectionId);
+    const snackbar = useSnackbarController();
 
     const [formState, setFormState] = useState<FormState>(() => createEmptyFormState());
     const [initialSnapshot, setInitialSnapshot] = useState<FormState>(() => createEmptyFormState());
@@ -438,6 +440,11 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
         const validationError = validateForm(sanitizedState);
         if (validationError) {
             setErrorMessage(validationError);
+            snackbar.open({
+                type: "error",
+                message: validationError,
+                autoHideDuration: 4500
+            });
             return;
         }
 
@@ -458,15 +465,30 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
 
             if (isEditMode) {
                 setSuccessMessage(`Collection "${sanitizedState.name}" updated successfully.`);
+                snackbar.open({
+                    type: "success",
+                    message: `Collection "${sanitizedState.name}" saved`,
+                    autoHideDuration: 4000
+                });
                 applySnapshot(sanitizedState);
             } else {
                 setSuccessMessage(`Collection "${sanitizedState.name}" created successfully.`);
+                snackbar.open({
+                    type: "success",
+                    message: `Collection "${sanitizedState.name}" created`,
+                    autoHideDuration: 4000
+                });
                 const defaultState = createEmptyFormState();
                 applySnapshot(defaultState);
             }
         } catch (error: any) {
             console.error("Error saving collection", error);
             setErrorMessage(error?.message ?? "Unexpected error saving the collection.");
+            snackbar.open({
+                type: "error",
+                message: error?.message ?? "Unexpected error saving the collection.",
+                autoHideDuration: 5000
+            });
         } finally {
             setIsSubmitting(false);
         }
@@ -588,8 +610,8 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                                     key={permissionKey}
                                     type="button"
                                     className={`rounded-md border px-3 py-2 text-sm font-medium transition ${formState.permissions[permissionKey]
-                                            ? "bg-primary text-white border-primary"
-                                            : "bg-surface-100 dark:bg-surface-800 text-text-secondary border-surface-300 dark:border-surface-600"
+                                        ? "bg-primary text-white border-primary"
+                                        : "bg-surface-100 dark:bg-surface-800 text-text-secondary border-surface-300 dark:border-surface-600"
                                         } ${formBusy ? "opacity-60 cursor-not-allowed" : ""}`}
                                     onClick={() => !formBusy && handlePermissionToggle(permissionKey)}
                                     disabled={formBusy}
