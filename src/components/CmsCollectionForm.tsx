@@ -15,6 +15,24 @@ import {
     TextField,
     Typography
 } from "@firecms/ui";
+const NONE_ICON_VALUE = "__none__";
+
+const ICON_OPTIONS = [
+    "place",
+    "map",
+    "photo",
+    "star",
+    "home",
+    "flight",
+    "hotel",
+    "workspace_premium",
+    "language",
+    "local_library",
+    "directions_car",
+    "restaurant",
+    "celebration",
+    "local_activity"
+] as const;
 import { useSnackbarController } from "@firecms/core";
 import { StorageBrowserDialog } from "./storage/StorageBrowser";
 import type {
@@ -694,16 +712,29 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                             placeholder="Travel"
                             disabled={formBusy}
                         />
-                        <TextField
-                            label="Icon (optional)"
-                            value={formState.icon}
-                            onChange={(event) => setFormState((current) => ({
-                                ...current,
-                                icon: event.target.value
-                            }))}
-                            placeholder="Place"
-                            disabled={formBusy}
-                        />
+                        <div className="flex flex-col gap-2">
+                            <label className="text-sm font-medium text-text-secondary dark:text-text-secondary-dark">
+                                Icon (optional)
+                            </label>
+                            <div className="flex items-center gap-2">
+                                <select
+                                    className="h-12 rounded-md border border-surface-300 dark:border-surface-700 bg-white dark:bg-surface-900 px-3"
+                                    value={formState.icon || ""}
+                                    onChange={(event) => setFormState((current) => ({
+                                        ...current,
+                                        icon: event.target.value
+                                    }))}
+                                    disabled={formBusy}
+                                >
+                                    <option value="">None</option>
+                                    {ICON_OPTIONS.map((iconKey) => (
+                                        <option key={iconKey} value={iconKey}>
+                                            {iconKey.replaceAll("_", "-")}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
                     </section>
 
                     <TextField
