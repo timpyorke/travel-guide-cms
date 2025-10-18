@@ -34,20 +34,43 @@ import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from "./localization";
 import { firebaseConfig } from "./firebase_config";
 import { CmsCollectionForm } from "./components/CmsCollectionForm";
 import { CmsCollectionsManager } from "./components/CmsCollectionsManager";
-import { StorageBrowser } from "./components/storage/StorageBrowser";
+import { StorageBrowser } from "./components/StorageBrowser";
 import { Link, Route, useParams } from "react-router-dom";
 import { useSnackbarController } from "@firecms/core";
 import { SnackbarProvider as NotistackSnackbarProvider } from "notistack";
-
-const LOCALE_STORAGE_KEY = "cms_active_locale";
+import {
+    LOCALE_STORAGE_KEY,
+    APP_TITLE,
+    DEFAULT_SNACKBAR_MAX_COUNT,
+    DEFAULT_SNACKBAR_AUTO_HIDE_DURATION,
+    SNACKBAR_ANCHOR_ORIGIN_VERTICAL,
+    SNACKBAR_ANCHOR_ORIGIN_HORIZONTAL,
+    SNACKBAR_CSS_CLASS,
+    FIREBASE_SIGN_IN_PROVIDERS,
+    FLANDERS_EMAIL_FILTER,
+    ERROR_MESSAGE_FLANDERS,
+    ADMIN_EMAIL_DOMAIN,
+    ADMIN_CLAIM,
+    CONSOLE_LOG_ALLOWING_ACCESS,
+    ROUTE_CMS_COLLECTIONS,
+    ROUTE_CMS_COLLECTIONS_NEW,
+    ROUTE_CMS_COLLECTIONS_EDIT,
+    ROUTE_STORAGE,
+    BUTTON_TEXT_MANAGE_COLLECTIONS,
+    BUTTON_TEXT_NEW_COLLECTION,
+    HEADER_STORAGE,
+    DEFAULT_ERROR_SNACKBAR_DURATION,
+    ERROR_MESSAGE_FAILED_LOAD_CMS_COLLECTIONS
+} from "./constants";
+import type { CustomizationController } from "./types";
 
 const CustomSnackbarProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     <NotistackSnackbarProvider
-        maxSnack={3}
-        autoHideDuration={3500}
-        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        maxSnack={DEFAULT_SNACKBAR_MAX_COUNT}
+        autoHideDuration={DEFAULT_SNACKBAR_AUTO_HIDE_DURATION}
+        anchorOrigin={{ vertical: SNACKBAR_ANCHOR_ORIGIN_VERTICAL, horizontal: SNACKBAR_ANCHOR_ORIGIN_HORIZONTAL }}
         classes={{
-            containerAnchorOriginTopRight: "notistack-anchor-top-right"
+            containerAnchorOriginTopRight: SNACKBAR_CSS_CLASS
         }}
     >
         {children}
@@ -62,15 +85,15 @@ function AppContent() {
         authController
     }) => {
 
-        if (user?.email?.includes("flanders")) {
+        if (user?.email?.includes(FLANDERS_EMAIL_FILTER)) {
             // You can throw an error to prevent access
-            throw Error("Stupid Flanders!");
+            throw Error(ERROR_MESSAGE_FLANDERS);
         }
 
         const idTokenResult = await user?.firebaseUser?.getIdTokenResult();
-        const userIsAdmin = idTokenResult?.claims.admin || user?.email?.endsWith("@firecms.co");
+        const userIsAdmin = idTokenResult?.claims[ADMIN_CLAIM] || user?.email?.endsWith(ADMIN_EMAIL_DOMAIN);
 
-        console.log("Allowing access to", user);
+        console.log(CONSOLE_LOG_ALLOWING_ACCESS, user);
 
         // we allow access to every user in this case
         return true;
@@ -87,7 +110,7 @@ function AppContent() {
     // Controller used to manage the dark or light color mode
     const modeController = useBuildModeController();
 
-    const signInOptions: FirebaseSignInProvider[] = ["google.com", "password"];
+    const signInOptions: FirebaseSignInProvider[] = [...FIREBASE_SIGN_IN_PROVIDERS];
 
     // Controller for managing authentication
     const authController: FirebaseAuthController = useFirebaseAuthController({
@@ -142,8 +165,8 @@ function AppContent() {
     const storageViews = useMemo(() => {
         if (!firebaseApp) return [];
         return [{
-            path: "storage",
-            name: "Storage",
+            path: ROUTE_STORAGE.substring(1), // Remove leading slash
+            name: HEADER_STORAGE,
             icon: "image",
             view: <StorageBrowserPage firebaseApp={firebaseApp} />
         }];
@@ -192,9 +215,9 @@ function AppContent() {
                     context,
                     loading
                 }) => {
-                    const customizationController = useCustomizationController();
+                    const customizationController = useCustomizationController() as CustomizationController | null;
                     if (customizationController) {
-                        customizationController.locale = activeLocale as any;
+                        customizationController.locale = activeLocale;
                     }
 
                     if (loading || authLoading || cmsCollectionsLoading) {
@@ -211,24 +234,24 @@ function AppContent() {
                     return <Scaffold
                         autoOpenDrawer={false}>
                         <AppBar
-                            title={"Travel Guide CMS"}
+                            title={APP_TITLE}
                             endAdornment={
                                 <div className="flex gap-2">
                                     <Button
                                         size="small"
                                         variant="outlined"
                                         component={Link}
-                                        to={"/cms/collections"}
+                                        to={ROUTE_CMS_COLLECTIONS}
                                     >
-                                        Manage collections
+                                        {BUTTON_TEXT_MANAGE_COLLECTIONS}
                                     </Button>
                                     <Button
                                         size="small"
                                         color="primary"
                                         component={Link}
-                                        to={"/cms/collections/new"}
+                                        to={ROUTE_CMS_COLLECTIONS_NEW}
                                     >
-                                        New collection
+                                        {BUTTON_TEXT_NEW_COLLECTION}
                                     </Button>
                                     <select
                                         className="border border-surface-300 dark:border-surface-700 rounded-md px-2 py-1 text-sm bg-white dark:bg-surface-900"
@@ -244,18 +267,18 @@ function AppContent() {
                         />
                         <Drawer />
                         <NavigationRoutes>
-                            <Route path={"/cms/collections"}
+                            <Route path={ROUTE_CMS_COLLECTIONS}
                                 element={<CmsCollectionsManager firebaseApp={firebaseApp} />} />
                             <Route
-                                path={"/cms/collections/new"}
+                                path={ROUTE_CMS_COLLECTIONS_NEW}
                                 element={<CmsCollectionForm firebaseApp={firebaseApp} />}
                             />
                             <Route
-                                path={"/cms/collections/:collectionId/edit"}
+                                path={ROUTE_CMS_COLLECTIONS_EDIT}
                                 element={<CmsCollectionEditView />}
                             />
                             <Route
-                                path={"/storage"}
+                                path={ROUTE_STORAGE}
                                 element={<StorageBrowserPage firebaseApp={firebaseApp} />}
                             />
                         </NavigationRoutes>
@@ -275,8 +298,8 @@ const CmsCollectionsErrorToast: React.FC<{ error?: Error }> = ({ error }) => {
         if (error) {
             snackbar.open({
                 type: "error",
-                message: error.message ?? "Failed to load CMS collections",
-                autoHideDuration: 4500
+                message: error.message ?? ERROR_MESSAGE_FAILED_LOAD_CMS_COLLECTIONS,
+                autoHideDuration: DEFAULT_ERROR_SNACKBAR_DURATION
             });
         }
     }, [error, snackbar]);
@@ -286,7 +309,7 @@ const CmsCollectionsErrorToast: React.FC<{ error?: Error }> = ({ error }) => {
 const StorageBrowserPage: React.FC<{ firebaseApp: FirebaseApp }> = ({ firebaseApp }) => {
     return (
         <div className="p-4 flex flex-col gap-4">
-            <Typography variant="h4">Storage</Typography>
+            <Typography variant="h4">{HEADER_STORAGE}</Typography>
             <StorageBrowser firebaseApp={firebaseApp} />
         </div>
     );

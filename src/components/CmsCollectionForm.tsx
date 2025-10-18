@@ -17,31 +17,40 @@ import {
 } from "@firecms/ui";
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from "../localization";
 
-const ICON_OPTIONS = [
-    "place",
-    "map",
-    "photo",
-    "star",
-    "home",
-    "flight",
-    "hotel",
-    "workspace_premium",
-    "language",
-    "local_library",
-    "directions_car",
-    "restaurant",
-    "celebration",
-    "local_activity"
-] as const;
-
 import { useSnackbarController } from "@firecms/core";
-import { StorageBrowserDialog } from "./storage/StorageBrowser";
+import { StorageBrowserDialog } from "./StorageBrowser";
 import type {
     CmsCollectionConfig,
     CmsCollectionPermissions,
     CmsPropertyConfig
 } from "../collections/CmsCollections";
-import { DEFAULT_CMS_COLLECTION_PERMISSIONS } from "../collections/CmsCollections";
+import {
+    ICON_OPTIONS,
+    DEFAULT_CMS_COLLECTION_PERMISSIONS,
+    STRING_DATA_TYPE,
+    EMPTY_STRING,
+    PROPERTY_ID_PREFIX,
+    PROPERTY_ID_RANDOM_LENGTH,
+    PROPERTY_ID_BASE_36,
+    PROPERTY_ID_SLICE_START,
+    LABEL_COLLECTION_ID,
+    LABEL_DISPLAY_NAME,
+    LABEL_FIRESTORE_PATH,
+    LABEL_GROUP_OPTIONAL,
+    LABEL_ICON_OPTIONAL,
+    LABEL_DESCRIPTION_OPTIONAL,
+    LABEL_FIELD_KEY,
+    LABEL_DISPLAY_NAME_OPTIONAL,
+    LABEL_DATA_TYPE,
+    LABEL_DESCRIPTION_OPTIONAL_FIELD,
+    LABEL_STORAGE_FOLDER,
+    LABEL_ACCEPTED_FILE_TYPES,
+    LABEL_MAX_FILE_SIZE_MB,
+    LABEL_DEFAULT_VALUE_FILE_PATH,
+    LABEL_ENUM_VALUES_OPTIONAL,
+    LABEL_REFERENCE_PATH,
+    LABEL_ARRAY_ITEM_TYPE
+} from "../constants";
 
 type ScalarDataType =
     "string"
@@ -54,12 +63,15 @@ type PropertyDataType = ScalarDataType | "reference" | "array";
 
 type ArrayInnerType = "string" | "reference";
 
+type AutoValueOption = "on_create" | "on_update" | "on_create_update" | undefined;
+
 type PermissionState = Required<CmsCollectionPermissions>;
 
 const generatePropertyId = (): string => {
-    const randomUUID = (globalThis as any)?.crypto?.randomUUID?.();
+    const globalThis = (window as unknown) as { crypto?: { randomUUID?: () => string } };
+    const randomUUID = globalThis?.crypto?.randomUUID?.();
     if (randomUUID) return randomUUID;
-    return `prop_${Math.random().toString(36).slice(2, 11)}_${Date.now()}`;
+    return `${PROPERTY_ID_PREFIX}${Math.random().toString(PROPERTY_ID_BASE_36).slice(PROPERTY_ID_SLICE_START, PROPERTY_ID_RANDOM_LENGTH)}_${Date.now()}`;
 };
 
 type PropertyFormState = {
@@ -80,6 +92,9 @@ type PropertyFormState = {
     storageMaxSize: string;
     defaultValue: string;
     localized: boolean;
+    multiline: boolean;
+    markdown: boolean;
+    autoValue: AutoValueOption;
 };
 
 type FormState = {
@@ -122,22 +137,25 @@ const buildEmptyLocalizations = (): Record<string, LocalizationFormState> => {
 
 const createEmptyProperty = (): PropertyFormState => ({
     id: generatePropertyId(),
-    key: "",
-    name: "",
-    description: "",
-    dataType: "string",
+    key: EMPTY_STRING,
+    name: EMPTY_STRING,
+    description: EMPTY_STRING,
+    dataType: STRING_DATA_TYPE,
     required: false,
     enumValues: [],
-    referencePath: "",
-    arrayOfType: "string",
+    referencePath: EMPTY_STRING,
+    arrayOfType: STRING_DATA_TYPE,
     arrayEnumValues: [],
-    arrayReferencePath: "",
+    arrayReferencePath: EMPTY_STRING,
     storageEnabled: false,
-    storagePath: "",
-    storageAcceptedFiles: "",
-    storageMaxSize: "",
-    defaultValue: "",
-    localized: false
+    storagePath: EMPTY_STRING,
+    storageAcceptedFiles: EMPTY_STRING,
+    storageMaxSize: EMPTY_STRING,
+    defaultValue: EMPTY_STRING,
+    localized: false,
+    multiline: false,
+    markdown: false,
+    autoValue: undefined
 });
 
 const createEmptyFormState = (): FormState => ({
@@ -205,7 +223,10 @@ const cmsPropertyToFormState = (propertyConfig?: CmsPropertyConfig): PropertyFor
             ? (propertyConfig.storage.maxSize / (1024 * 1024)).toString()
             : "",
         defaultValue: propertyConfig.defaultValue?.trim() ?? "",
-        localized: propertyConfig.localized === true
+        localized: propertyConfig.localized === true,
+        multiline: propertyConfig.multiline === true,
+        markdown: propertyConfig.markdown === true,
+        autoValue: (propertyConfig.autoValue as AutoValueOption)
     };
 
     if (dataType === "array") {
@@ -224,6 +245,13 @@ const cmsPropertyToFormState = (propertyConfig?: CmsPropertyConfig): PropertyFor
         property.storageAcceptedFiles = "";
         property.storageMaxSize = "";
         property.defaultValue = "";
+        property.localized = false;
+        property.multiline = false;
+        property.markdown = false;
+    }
+
+    if (dataType !== "date") {
+        property.autoValue = undefined;
     }
 
     return property;
@@ -249,15 +277,18 @@ const cmsConfigToFormState = (config: CmsCollectionConfig): FormState => ({
         const localizationState = buildEmptyLocalizations();
         SUPPORTED_LOCALES.forEach(({ code }) => {
             const localized = config.localizations?.[code];
-            if (localized?.name) localizationState[code].name = localized.name;
-            if (localized?.description) localizationState[code].description = localized.description;
-            if (localized?.group) localizationState[code].group = localized.group;
+            if (localized?.name && localizationState[code]) localizationState[code]!.name = localized.name;
+            if (localized?.description && localizationState[code]) localizationState[code]!.description = localized.description;
+            if (localized?.group && localizationState[code]) localizationState[code]!.group = localized.group;
         });
-        localizationState[DEFAULT_LOCALE] = {
-            name: config.name?.trim() ?? localizationState[DEFAULT_LOCALE].name,
-            description: config.description?.trim() ?? localizationState[DEFAULT_LOCALE].description,
-            group: config.group?.trim() ?? localizationState[DEFAULT_LOCALE].group
-        };
+        const defaultLocalization = localizationState[DEFAULT_LOCALE];
+        if (defaultLocalization) {
+            localizationState[DEFAULT_LOCALE] = {
+                name: config.name?.trim() ?? defaultLocalization.name,
+                description: config.description?.trim() ?? defaultLocalization.description,
+                group: config.group?.trim() ?? defaultLocalization.group
+            };
+        }
         return localizationState;
     })()
 });
@@ -287,7 +318,9 @@ const sanitizeFormState = (state: FormState): FormState => ({
             .filter(Boolean)
             .join(", "),
         storageMaxSize: property.storageMaxSize.trim(),
-        defaultValue: property.defaultValue.trim()
+        defaultValue: property.defaultValue.trim(),
+        multiline: property.multiline,
+        markdown: property.markdown
     })),
     localizations: Object.entries(state.localizations).reduce((acc, [locale, values]) => {
         acc[locale] = {
@@ -346,7 +379,7 @@ const buildPropertyPayload = (property: PropertyFormState) => {
         ...rest
     } = property;
     const baseProperty = rest;
-    const base: Record<string, any> = {
+    const base: Record<string, unknown> = {
         key: baseProperty.key,
         dataType: baseProperty.dataType
     };
@@ -358,6 +391,10 @@ const buildPropertyPayload = (property: PropertyFormState) => {
     if (baseProperty.dataType === "string") {
         const enumValues = listToEnumValues(baseProperty.enumValues);
         if (enumValues) base.enumValues = enumValues;
+        if (!baseProperty.localized) {
+            if (baseProperty.multiline) base.multiline = true;
+            if (baseProperty.markdown) base.markdown = true;
+        }
     }
 
     if (baseProperty.dataType === "reference") {
@@ -365,7 +402,7 @@ const buildPropertyPayload = (property: PropertyFormState) => {
     }
 
     if (baseProperty.dataType === "array") {
-        const of: Record<string, any> = {
+        const of: Record<string, unknown> = {
             dataType: baseProperty.arrayOfType
         };
         if (baseProperty.arrayOfType === "string") {
@@ -394,12 +431,23 @@ const buildPropertyPayload = (property: PropertyFormState) => {
         };
     }
 
+    if (baseProperty.dataType === "date") {
+        if (baseProperty.autoValue) {
+            base.autoValue = baseProperty.autoValue;
+        }
+    }
+
     if (baseProperty.defaultValue) {
         base.defaultValue = baseProperty.defaultValue;
     }
 
     if (baseProperty.localized) {
         base.localized = true;
+        if (baseProperty.multiline) base.multiline = true;
+        if (baseProperty.markdown) base.markdown = true;
+    } else {
+        if (baseProperty.multiline) base.multiline = true;
+        if (baseProperty.markdown) base.markdown = true;
     }
 
     return base;
@@ -476,9 +524,10 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                     setErrorMessage(null);
                     setSuccessMessage(null);
                 }
-            } catch (error: any) {
+            } catch (error: unknown) {
                 if (!isCancelled) {
-                    setErrorMessage(error?.message ?? "Unexpected error loading the collection.");
+                    const errorMessage = error instanceof Error ? error.message : "Unexpected error loading the collection.";
+                    setErrorMessage(errorMessage);
                 }
             } finally {
                 if (!isCancelled) {
@@ -575,12 +624,18 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                     updated.defaultValue = "";
                 }
 
-                if (key === "localized" && value === true) {
-                    updated.storageEnabled = false;
-                    updated.storagePath = "";
-                    updated.storageAcceptedFiles = "";
-                    updated.storageMaxSize = "";
-                    updated.defaultValue = "";
+                if (key === "localized") {
+                    if (value) {
+                        updated.storageEnabled = false;
+                        updated.storagePath = "";
+                        updated.storageAcceptedFiles = "";
+                        updated.storageMaxSize = "";
+                        updated.defaultValue = "";
+                    }
+                }
+
+                if (key === "markdown" && value === true) {
+                    updated.multiline = true;
                 }
 
                 return updated;
@@ -594,6 +649,8 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
 
     const openStoragePicker = (propertyIndex: number, target: "storagePath" | "defaultValue") => {
         const property = formState.properties[propertyIndex];
+        if (!property) return;
+
         setStoragePicker({
             propertyIndex,
             target,
@@ -697,7 +754,7 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
             }, {} as Record<string, Record<string, string>>);
 
             if (Object.keys(localizationPayload).length > 0) {
-                (payload as any).localizations = localizationPayload;
+                (payload as Record<string, unknown>).localizations = localizationPayload;
             }
 
             await setDoc(doc(firestore, "cms_collections", sanitizedState.collectionId), payload);
@@ -720,12 +777,13 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                 const defaultState = createEmptyFormState();
                 applySnapshot(defaultState);
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Error saving collection", error);
-            setErrorMessage(error?.message ?? "Unexpected error saving the collection.");
+            const errorMessage = error instanceof Error ? error.message : "Unexpected error saving the collection.";
+            setErrorMessage(errorMessage);
             snackbar.open({
                 type: "error",
-                message: error?.message ?? "Unexpected error saving the collection.",
+                message: errorMessage,
                 autoHideDuration: 5000
             });
         } finally {
@@ -774,7 +832,7 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                 <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
                     <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <TextField
-                            label="Collection ID"
+                            label={LABEL_COLLECTION_ID}
                             value={formState.collectionId}
                             onChange={(event) => setFormState((current) => ({
                                 ...current,
@@ -785,7 +843,7 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                             disabled={formBusy || isEditMode}
                         />
                         <TextField
-                            label="Display name"
+                            label={LABEL_DISPLAY_NAME}
                             value={formState.name}
                             onChange={(event) => setFormState((current) => {
                                 const value = event.target.value;
@@ -807,7 +865,7 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                             disabled={formBusy}
                         />
                         <TextField
-                            label="Firestore path"
+                            label={LABEL_FIRESTORE_PATH}
                             value={formState.path}
                             onChange={(event) => setFormState((current) => ({
                                 ...current,
@@ -818,7 +876,7 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                             disabled={formBusy}
                         />
                         <TextField
-                            label="Group (optional)"
+                            label={LABEL_GROUP_OPTIONAL}
                             value={formState.group}
                             onChange={(event) => setFormState((current) => {
                                 const value = event.target.value;
@@ -840,7 +898,7 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                         />
                         <div className="flex flex-col gap-2">
                             <label className="text-sm font-medium text-text-secondary dark:text-text-secondary-dark">
-                                Icon (optional)
+                                {LABEL_ICON_OPTIONAL}
                             </label>
                             <div className="flex items-center gap-2">
                                 <select
@@ -864,7 +922,7 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                     </section>
 
                     <TextField
-                        label="Description (optional)"
+                        label={LABEL_DESCRIPTION_OPTIONAL}
                         multiline
                         minRows={3}
                         value={formState.description}
@@ -982,7 +1040,7 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                         <TextField
-                                            label="Field key"
+                                            label={LABEL_FIELD_KEY}
                                             value={property.key}
                                             onChange={(event) => handlePropertyChange(index, "key", event.target.value)}
                                             placeholder="title"
@@ -990,7 +1048,7 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                                             disabled={formBusy}
                                         />
                                         <TextField
-                                            label="Display name (optional)"
+                                            label={LABEL_DISPLAY_NAME_OPTIONAL}
                                             value={property.name}
                                             onChange={(event) => handlePropertyChange(index, "name", event.target.value)}
                                             placeholder="Title"
@@ -998,7 +1056,7 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                                         />
                                         <div className="flex flex-col gap-2">
                                             <label className="text-sm font-medium text-text-secondary dark:text-text-secondary-dark">
-                                                Data type
+                                                {LABEL_DATA_TYPE}
                                             </label>
                                             <select
                                                 className="h-12 rounded-md border border-surface-300 dark:border-surface-700 bg-white dark:bg-surface-900 px-3"
@@ -1030,7 +1088,7 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                                     </div>
 
                                     <TextField
-                                        label="Description (optional)"
+                                        label={LABEL_DESCRIPTION_OPTIONAL_FIELD}
                                         multiline
                                         minRows={2}
                                         value={property.description}
@@ -1056,7 +1114,7 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                                             {property.storageEnabled && (
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                                     <TextField
-                                                        label="Storage folder"
+                                                        label={LABEL_STORAGE_FOLDER}
                                                         value={property.storagePath}
                                                         onChange={(event) => handlePropertyChange(index, "storagePath", event.target.value)}
                                                         placeholder="images"
@@ -1083,14 +1141,14 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                                                         )}
                                                     </div>
                                                     <TextField
-                                                        label="Accepted file types (comma separated)"
+                                                        label={LABEL_ACCEPTED_FILE_TYPES}
                                                         value={property.storageAcceptedFiles}
                                                         onChange={(event) => handlePropertyChange(index, "storageAcceptedFiles", event.target.value)}
                                                         placeholder="image/*,application/pdf"
                                                         disabled={formBusy}
                                                     />
                                                     <TextField
-                                                        label="Max file size (MB)"
+                                                        label={LABEL_MAX_FILE_SIZE_MB}
                                                         value={property.storageMaxSize}
                                                         onChange={(event) => handlePropertyChange(index, "storageMaxSize", event.target.value)}
                                                         type="number"
@@ -1098,7 +1156,7 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                                                         disabled={formBusy}
                                                     />
                                                     <TextField
-                                                        label="Default value (file path)"
+                                                        label={LABEL_DEFAULT_VALUE_FILE_PATH}
                                                         value={property.defaultValue}
                                                         onChange={(event) => handlePropertyChange(index, "defaultValue", event.target.value)}
                                                         placeholder="Optional path to an existing file"
@@ -1130,23 +1188,41 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                                     )}
 
                                     {property.dataType === "string" && (
-                                        <div className="flex items-center gap-2">
-                                            <input
-                                                id={`localized-${index}`}
-                                                type="checkbox"
-                                                checked={property.localized}
-                                                onChange={(event) => handlePropertyChange(index, "localized", event.target.checked)}
-                                                disabled={formBusy}
-                                            />
-                                            <label htmlFor={`localized-${index}`} className="text-sm text-text-secondary dark:text-text-secondary-dark">
-                                                Localize this field (per locale string values)
+                                        <div className="flex flex-wrap items-center gap-4 text-sm text-text-secondary dark:text-text-secondary-dark">
+                                            <span className="font-medium">Display options</span>
+                                            <label className="flex items-center gap-2">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={property.multiline}
+                                                    onChange={(event) => handlePropertyChange(index, "multiline", event.target.checked)}
+                                                    disabled={formBusy}
+                                                />
+                                                <span>Multiline input</span>
+                                            </label>
+                                            <label className="flex items-center gap-2">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={property.markdown}
+                                                    onChange={(event) => handlePropertyChange(index, "markdown", event.target.checked)}
+                                                    disabled={formBusy}
+                                                />
+                                                <span>Markdown editor</span>
+                                            </label>
+                                            <label className="flex items-center gap-2">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={property.localized}
+                                                    onChange={(event) => handlePropertyChange(index, "localized", event.target.checked)}
+                                                    disabled={formBusy}
+                                                />
+                                                <span>Localized content</span>
                                             </label>
                                         </div>
                                     )}
 
                                     {property.dataType === "string" && (
                                         <TextField
-                                            label="Enum values (optional)"
+                                            label={LABEL_ENUM_VALUES_OPTIONAL}
                                             multiline
                                             minRows={2}
                                             value={property.enumValues.join("\n")}
@@ -1160,9 +1236,58 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                                         />
                                     )}
 
+                                    {property.dataType === "date" && (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            <label className="flex items-center gap-2 text-sm text-text-secondary dark:text-text-secondary-dark">
+                                                <input
+                                                    type="radio"
+                                                    name={`autoValue-${index}`}
+                                                    value="manual"
+                                                    checked={!property.autoValue}
+                                                    onChange={() => handlePropertyChange(index, "autoValue", undefined)}
+                                                    disabled={formBusy}
+                                                />
+                                                Manual entry (default)
+                                            </label>
+                                            <label className="flex items-center gap-2 text-sm text-text-secondary dark:text-text-secondary-dark">
+                                                <input
+                                                    type="radio"
+                                                    name={`autoValue-${index}`}
+                                                    value="on_create"
+                                                    checked={property.autoValue === "on_create"}
+                                                    onChange={() => handlePropertyChange(index, "autoValue", "on_create")}
+                                                    disabled={formBusy}
+                                                />
+                                                Auto set on creation
+                                            </label>
+                                            <label className="flex items-center gap-2 text-sm text-text-secondary dark:text-text-secondary-dark">
+                                                <input
+                                                    type="radio"
+                                                    name={`autoValue-${index}`}
+                                                    value="on_update"
+                                                    checked={property.autoValue === "on_update"}
+                                                    onChange={() => handlePropertyChange(index, "autoValue", "on_update")}
+                                                    disabled={formBusy}
+                                                />
+                                                Auto set on update
+                                            </label>
+                                            <label className="flex items-center gap-2 text-sm text-text-secondary dark:text-text-secondary-dark">
+                                                <input
+                                                    type="radio"
+                                                    name={`autoValue-${index}`}
+                                                    value="on_create_update"
+                                                    checked={property.autoValue === "on_create_update"}
+                                                    onChange={() => handlePropertyChange(index, "autoValue", "on_create_update")}
+                                                    disabled={formBusy}
+                                                />
+                                                Auto set on create & update
+                                            </label>
+                                        </div>
+                                    )}
+
                                     {property.dataType === "reference" && (
                                         <TextField
-                                            label="Reference path"
+                                            label={LABEL_REFERENCE_PATH}
                                             value={property.referencePath}
                                             onChange={(event) => handlePropertyChange(index, "referencePath", event.target.value)}
                                             placeholder="e.g. products"
@@ -1175,7 +1300,7 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                                         <div className="flex flex-col gap-4">
                                             <div className="flex flex-col gap-2">
                                                 <label className="text-sm font-medium text-text-secondary dark:text-text-secondary-dark">
-                                                    Array item type
+                                                    {LABEL_ARRAY_ITEM_TYPE}
                                                 </label>
                                                 <select
                                                     className="h-12 rounded-md border border-surface-300 dark:border-surface-700 bg-white dark:bg-surface-900 px-3"
@@ -1190,7 +1315,7 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
 
                                             {property.arrayOfType === "string" && (
                                                 <TextField
-                                                    label="Enum values (optional)"
+                                                    label={LABEL_ENUM_VALUES_OPTIONAL}
                                                     multiline
                                                     minRows={2}
                                                     value={property.arrayEnumValues.join("\n")}
@@ -1206,7 +1331,7 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
 
                                             {property.arrayOfType === "reference" && (
                                                 <TextField
-                                                    label="Reference path"
+                                                    label={LABEL_REFERENCE_PATH}
                                                     value={property.arrayReferencePath}
                                                     onChange={(event) => handlePropertyChange(index, "arrayReferencePath", event.target.value)}
                                                     placeholder="e.g. products"

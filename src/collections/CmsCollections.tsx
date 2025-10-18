@@ -9,6 +9,29 @@ import {
 } from "firebase/firestore";
 import { EntityCollection } from "@firecms/core";
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from "../localization";
+import {
+    CMS_COLLECTIONS_PATH,
+    DATE_TIME_DATA_TYPE,
+    STRING_DATA_TYPE,
+    DATE_DATA_TYPE,
+    REFERENCE_DATA_TYPE,
+    ARRAY_DATA_TYPE,
+    MAP_DATA_TYPE,
+    MODE_DATE,
+    MODE_DATE_TIME,
+    PROPERTY_EXPANDED,
+    PROPERTY_MULTILINE,
+    PROPERTY_MARKDOWN,
+    PROPERTY_REQUIRED,
+    EMPTY_STRING,
+    ZERO_LENGTH,
+    ERROR_MESSAGE_CMS_COLLECTIONS,
+    DEFAULT_CMS_COLLECTION_PERMISSIONS
+} from "../constants";
+import type {
+    PropertyArrayConfig,
+    DynamicProperty
+} from "../types";
 
 export type CmsCollectionPermissions = {
     read?: boolean;
@@ -42,6 +65,9 @@ export type CmsPropertyConfig = {
     storage?: CmsStorageConfig;
     defaultValue?: string;
     localized?: boolean;
+    multiline?: boolean;
+    markdown?: boolean;
+    autoValue?: "on_create" | "on_update" | "on_create_update";
 };
 
 export type CmsCollectionLocalization = {
@@ -62,15 +88,10 @@ export type CmsCollectionConfig = {
     localizations?: Record<string, CmsCollectionLocalization>;
 };
 
-export const DEFAULT_CMS_COLLECTION_PERMISSIONS = {
-    read: true,
-    create: true,
-    edit: true,
-    delete: false
-} as const;
+
 
 const isNonEmptyString = (value: unknown): value is string =>
-    typeof value === "string" && value.trim().length > 0;
+    typeof value === "string" && value.trim().length > ZERO_LENGTH;
 
 const normalizePermissions = (permissions?: CmsCollectionPermissions) => ({
     read: permissions?.read ?? DEFAULT_CMS_COLLECTION_PERMISSIONS.read,
@@ -79,27 +100,27 @@ const normalizePermissions = (permissions?: CmsCollectionPermissions) => ({
     delete: permissions?.delete ?? DEFAULT_CMS_COLLECTION_PERMISSIONS.delete
 });
 
-const buildArrayProperty = (config?: CmsArrayPropertyConfig) => {
+const buildArrayProperty = (config?: CmsArrayPropertyConfig): PropertyArrayConfig | undefined => {
     if (!config?.dataType) return undefined;
 
     const dataType = config.dataType;
-    const base: Record<string, any> = {
-        dataType: dataType === "date_time" ? "date" : dataType
+    const base: PropertyArrayConfig = {
+        dataType: dataType === DATE_TIME_DATA_TYPE ? DATE_DATA_TYPE : dataType
     };
 
-    if (dataType === "date_time") {
-        base.mode = "date_time";
+    if (dataType === DATE_TIME_DATA_TYPE) {
+        base.mode = MODE_DATE_TIME;
     }
 
-    if (dataType === "string" && config.enumValues && Object.keys(config.enumValues).length > 0) {
+    if (dataType === STRING_DATA_TYPE && config.enumValues && Object.keys(config.enumValues).length > ZERO_LENGTH) {
         base.enumValues = config.enumValues;
     }
 
-    if (dataType === "reference" && isNonEmptyString(config.path)) {
+    if (dataType === REFERENCE_DATA_TYPE && isNonEmptyString(config.path)) {
         base.path = config.path.trim();
     }
 
-    if (dataType === "string" && config.storage?.storagePath) {
+    if (dataType === STRING_DATA_TYPE && config.storage?.storagePath) {
         base.storage = {
             storagePath: config.storage.storagePath,
             acceptedFiles: config.storage.acceptedFiles,
@@ -110,11 +131,11 @@ const buildArrayProperty = (config?: CmsArrayPropertyConfig) => {
     return base;
 };
 
-const buildProperty = (config?: CmsPropertyConfig) => {
+const buildProperty = (config?: CmsPropertyConfig): DynamicProperty | undefined => {
     if (!config?.key || !config?.dataType) return undefined;
 
-    const base: Record<string, any> = {
-        dataType: config.dataType === "date_time" ? "date" : config.dataType
+    const base: DynamicProperty = {
+        dataType: config.dataType === DATE_TIME_DATA_TYPE ? DATE_DATA_TYPE : config.dataType
     };
 
     if (isNonEmptyString(config.name)) {
@@ -126,48 +147,63 @@ const buildProperty = (config?: CmsPropertyConfig) => {
     }
 
     if (config.required) {
-        base.validation = { required: true };
+        base.validation = { required: PROPERTY_REQUIRED };
     }
 
-    if (config.localized && config.dataType === "string") {
+    const applyStringOptions = (target: DynamicProperty) => {
+        if (config.enumValues && Object.keys(config.enumValues).length > ZERO_LENGTH) {
+            target.enumValues = config.enumValues;
+        }
+        if (config.storage?.storagePath) {
+            target.storage = {
+                storagePath: config.storage.storagePath,
+                acceptedFiles: config.storage.acceptedFiles,
+                maxSize: config.storage.maxSize
+            };
+        }
+        if (config.multiline) {
+            target.multiline = PROPERTY_MULTILINE;
+        }
+        if (config.markdown) {
+            target.markdown = PROPERTY_MARKDOWN;
+        }
+    };
+
+    if (config.localized && config.dataType === STRING_DATA_TYPE) {
         return {
-            dataType: "map",
+            ...base,
+            dataType: MAP_DATA_TYPE,
+            expanded: PROPERTY_EXPANDED,
             properties: SUPPORTED_LOCALES.reduce((acc, locale) => {
-                acc[locale.code] = {
+                const child: DynamicProperty = {
                     name: locale.label,
-                    dataType: "string"
+                    dataType: STRING_DATA_TYPE
                 };
+                applyStringOptions(child);
+                acc[locale.code] = child;
                 return acc;
-            }, {} as Record<string, any>)
+            }, {} as Record<string, DynamicProperty>)
         };
     }
 
     switch (config.dataType) {
-        case "date":
-            base.mode = "date";
+        case DATE_DATA_TYPE:
+            base.mode = MODE_DATE;
+            if (config.autoValue) base.autoValue = config.autoValue;
             break;
-        case "date_time":
-            base.mode = "date_time";
+        case DATE_TIME_DATA_TYPE:
+            base.mode = MODE_DATE_TIME;
             break;
-        case "string":
-            if (config.enumValues && Object.keys(config.enumValues).length > 0) {
-                base.enumValues = config.enumValues;
-            }
-            if (config.storage?.storagePath) {
-                base.storage = {
-                    storagePath: config.storage.storagePath,
-                    acceptedFiles: config.storage.acceptedFiles,
-                    maxSize: config.storage.maxSize
-                };
-            }
+        case STRING_DATA_TYPE:
+            applyStringOptions(base);
             break;
-        case "reference":
+        case REFERENCE_DATA_TYPE:
             if (!isNonEmptyString(config.path)) {
                 return undefined;
             }
             base.path = config.path.trim();
             break;
-        case "array": {
+        case ARRAY_DATA_TYPE: {
             const ofProperty = buildArrayProperty(config.of);
             if (!ofProperty) {
                 return undefined;
@@ -186,7 +222,7 @@ const buildProperty = (config?: CmsPropertyConfig) => {
     return base;
 };
 
-const snapshotToEntityCollection = (snapshot: QueryDocumentSnapshot<DocumentData>, locale?: string): EntityCollection | undefined => {
+export const snapshotToEntityCollection = (snapshot: QueryDocumentSnapshot<DocumentData>, locale?: string): EntityCollection | undefined => {
     const data = snapshot.data() as CmsCollectionConfig;
 
     if (!isNonEmptyString(data.id) || !isNonEmptyString(data.path) || !isNonEmptyString(data.name)) {
@@ -194,7 +230,7 @@ const snapshotToEntityCollection = (snapshot: QueryDocumentSnapshot<DocumentData
     }
 
     const propertiesArray = Array.isArray(data.properties) ? data.properties : [];
-    const properties = propertiesArray.reduce<Record<string, any>>((acc, propertyConfig) => {
+    const properties = propertiesArray.reduce<Record<string, DynamicProperty>>((acc, propertyConfig) => {
         const property = buildProperty(propertyConfig);
         if (property && propertyConfig?.key) {
             acc[propertyConfig.key.trim()] = property;
@@ -202,7 +238,7 @@ const snapshotToEntityCollection = (snapshot: QueryDocumentSnapshot<DocumentData
         return acc;
     }, {});
 
-    if (Object.keys(properties).length === 0) {
+    if (Object.keys(properties).length === ZERO_LENGTH) {
         return undefined;
     }
 
@@ -220,12 +256,12 @@ const snapshotToEntityCollection = (snapshot: QueryDocumentSnapshot<DocumentData
     return {
         id: data.id.trim(),
         path: data.path.trim(),
-        name: getLocalizedValue(data.name, localization?.name) ?? "",
+        name: getLocalizedValue(data.name, localization?.name) ?? EMPTY_STRING,
         description: getLocalizedValue(data.description, localization?.description),
         group: getLocalizedValue(data.group, localization?.group),
         icon: data.icon,
         permissions,
-        properties
+        properties: properties as any
     };
 };
 
@@ -250,7 +286,7 @@ export const useCmsCollections = (firebaseApp: FirebaseApp | undefined | null, l
 
         setLoading(true);
         const firestore = getFirestore(firebaseApp);
-        const cmsCollectionsRef = collection(firestore, "cms_collections");
+        const cmsCollectionsRef = collection(firestore, CMS_COLLECTIONS_PATH);
 
         const unsubscribe = onSnapshot(cmsCollectionsRef, (snapshot) => {
             const parsedCollections = snapshot.docs
@@ -261,7 +297,7 @@ export const useCmsCollections = (firebaseApp: FirebaseApp | undefined | null, l
             setError(undefined);
             setLoading(false);
         }, (err) => {
-            console.error("Error loading CMS collections", err);
+            console.error(ERROR_MESSAGE_CMS_COLLECTIONS, err);
             setCollections([]);
             setError(err);
             setLoading(false);
