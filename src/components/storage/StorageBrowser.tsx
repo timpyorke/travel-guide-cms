@@ -22,6 +22,67 @@ import {
     TextField,
     Typography
 } from "@firecms/ui";
+import {
+    FILE_SIZE_UNITS,
+    FILE_SIZE_THRESHOLD,
+    FILE_SIZE_DECIMAL_PRECISION,
+    FOLDER_PLACEHOLDER,
+    FILE_EXTENSIONS_PREVIEW,
+    FOLDER_ICON,
+    FILE_ICON,
+    FOLDER_SIZE_PLACEHOLDER,
+    SIZE_PLACEHOLDER_DASH,
+    DATE_PLACEHOLDER_DASH,
+    EMPTY_STRING,
+    ZERO_LENGTH,
+    BREADCRUMB_ROOT_LABEL,
+    BREADCRUMB_SEPARATOR,
+    BUTTON_TEXT_SELECT_THIS_FOLDER,
+    BUTTON_TEXT_NEW_FOLDER,
+    BUTTON_TEXT_UPLOAD_FILES,
+    BUTTON_TEXT_DOWNLOAD,
+    BUTTON_TEXT_PREVIEW,
+    BUTTON_TEXT_SELECT,
+    BUTTON_TEXT_DELETE,
+    BUTTON_TEXT_CANCEL,
+    BUTTON_TEXT_CREATE,
+    BUTTON_TEXT_CLOSE,
+    HEADER_CREATE_FOLDER,
+    LABEL_FOLDER_NAME,
+    PLACEHOLDER_ASSETS_FOLDER,
+    TABLE_HEADER_NAME,
+    TABLE_HEADER_SIZE,
+    TABLE_HEADER_UPDATED,
+    TABLE_HEADER_ACTIONS,
+    DESCRIPTION_EMPTY_FOLDER,
+    DIALOG_TITLE_STORAGE_BROWSER,
+    VALIDATION_FOLDER_NAME_REQUIRED,
+    VALIDATION_FOLDER_NAME_NO_SLASH,
+    VALIDATION_FOLDER_NAME_LETTERS_NUMBERS,
+    FOLDER_NAME_SANITIZE_REGEX,
+    FOLDER_NAME_REPLACEMENT_CHAR,
+    CONFIRM_DELETE_FOLDER,
+    CONFIRM_DELETE_ACTION,
+    LOADING_TEXT_CREATING_FOLDER,
+    UPLOAD_PROGRESS_DECIMAL_PLACES,
+    CSS_CLASS_HIDDEN,
+    DEFAULT_FILE_INPUT_MULTIPLE,
+    WINDOW_TARGET_BLANK,
+    LAST_DOT_INDEX,
+    CONSOLE_ERROR_FAILED_METADATA,
+    CONSOLE_ERROR_LISTING_STORAGE,
+    CONSOLE_ERROR_FAILED_CREATE_FOLDER,
+    CONSOLE_ERROR_FAILED_DELETE_STORAGE,
+    CONSOLE_ERROR_FAILED_DOWNLOAD_STORAGE,
+    CONSOLE_ERROR_FAILED_PREVIEW_STORAGE,
+    ALERT_ERROR_LOADING_STORAGE,
+    ALERT_FAILED_DELETE,
+    ALERT_FAILED_DOWNLOAD,
+    ALERT_FAILED_PREVIEW,
+    ALERT_UNKNOWN_ERROR,
+    MATH_ABS_THRESHOLD,
+    PROGRESS_COMPLETE_PERCENT
+} from "../../constants";
 
 type StorageBrowserItem = {
     name: string;
@@ -43,28 +104,28 @@ export type StorageBrowserProps = {
 };
 
 const humanFileSize = (bytes?: number) => {
-    if (bytes === undefined) return "-";
-    const thresh = 1024;
+    if (bytes === undefined) return SIZE_PLACEHOLDER_DASH;
+    const thresh = FILE_SIZE_THRESHOLD;
     if (Math.abs(bytes) < thresh) {
         return bytes + " B";
     }
-    const units = ["KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
-    let u = -1;
+    const units = FILE_SIZE_UNITS;
+    let u = LAST_DOT_INDEX;
     let value = bytes;
     do {
         value /= thresh;
         ++u;
-    } while (Math.abs(value) >= thresh && u < units.length - 1);
-    return value.toFixed(1) + " " + units[u];
+    } while (Math.abs(value) >= thresh && u < units.length + LAST_DOT_INDEX);
+    return value.toFixed(FILE_SIZE_DECIMAL_PRECISION) + " " + units[u];
 };
 
 const getFileExtension = (name: string) => {
     const index = name.lastIndexOf(".");
-    if (index === -1) return "";
+    if (index === LAST_DOT_INDEX) return EMPTY_STRING;
     return name.substring(index + 1).toLowerCase();
 };
 
-const FOLDER_PLACEHOLDER = ".keep";
+
 
 export const StorageBrowser: React.FC<StorageBrowserProps> = ({
     firebaseApp,

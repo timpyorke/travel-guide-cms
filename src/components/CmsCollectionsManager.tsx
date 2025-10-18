@@ -9,6 +9,24 @@ import {
     Typography
 } from "@firecms/ui";
 import { useCmsCollections } from "../collections/CmsCollections";
+import {
+    HEADER_CMS_COLLECTIONS,
+    DESCRIPTION_MANAGE_COLLECTIONS,
+    CMS_COLLECTIONS_PATH,
+    BUTTON_TEXT_NEW_COLLECTION,
+    ROUTE_CMS_COLLECTIONS_NEW,
+    ERROR_MESSAGE_FAILED_LOAD_CMS_COLLECTIONS_DOT,
+    DESCRIPTION_NO_COLLECTIONS,
+    TABLE_HEADER_NAME,
+    TABLE_HEADER_ID,
+    TABLE_HEADER_PATH,
+    TABLE_HEADER_GROUP,
+    TABLE_HEADER_ACTIONS,
+    BUTTON_TEXT_EDIT,
+    DEFAULT_DASH_PLACEHOLDER,
+    CODE_TAG,
+    ZERO_LENGTH
+} from "../constants";
 
 export type CmsCollectionsManagerProps = {
     firebaseApp: FirebaseApp;
@@ -28,26 +46,26 @@ export const CmsCollectionsManager: React.FC<CmsCollectionsManagerProps> = ({ fi
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div className="flex flex-col gap-2">
                         <Typography variant="h5">
-                            CMS Collections
+                            {HEADER_CMS_COLLECTIONS}
                         </Typography>
                         <Typography variant="body1" color="secondary">
-                            Manage the dynamic collections stored in the <code>cms_collections</code> Firestore collection.
+                            {DESCRIPTION_MANAGE_COLLECTIONS} <code>{CMS_COLLECTIONS_PATH}</code> Firestore collection.
                         </Typography>
                     </div>
                     <div className="flex gap-2 flex-wrap">
                         <Button
                             component={Link}
-                            to={"/cms/collections/new"}
+                            to={ROUTE_CMS_COLLECTIONS_NEW}
                             color="primary"
                         >
-                            New collection
+                            {BUTTON_TEXT_NEW_COLLECTION}
                         </Button>
                     </div>
                 </div>
 
                 {error && (
                     <Alert color="error">
-                        {error.message ?? "Failed to load CMS collections."}
+                        {error.message ?? ERROR_MESSAGE_FAILED_LOAD_CMS_COLLECTIONS_DOT}
                     </Alert>
                 )}
 
@@ -57,20 +75,20 @@ export const CmsCollectionsManager: React.FC<CmsCollectionsManagerProps> = ({ fi
                     </div>
                 ) : (
                     <div className="flex flex-col gap-3">
-                        {collections.length === 0 ? (
+                        {collections.length === ZERO_LENGTH ? (
                             <Typography variant="body1" color="secondary">
-                                No dynamic collections found yet. Create your first one to get started.
+                                {DESCRIPTION_NO_COLLECTIONS}
                             </Typography>
                         ) : (
                             <div className="overflow-x-auto">
                                 <table className="min-w-full border border-surface-200 dark:border-surface-700 rounded-md">
                                     <thead className="bg-surface-100 dark:bg-surface-800">
                                         <tr>
-                                            <th className="text-left px-4 py-3">Name</th>
-                                            <th className="text-left px-4 py-3">ID</th>
-                                            <th className="text-left px-4 py-3">Path</th>
-                                            <th className="text-left px-4 py-3">Group</th>
-                                            <th className="text-right px-4 py-3">Actions</th>
+                                            <th className="text-left px-4 py-3">{TABLE_HEADER_NAME}</th>
+                                            <th className="text-left px-4 py-3">{TABLE_HEADER_ID}</th>
+                                            <th className="text-left px-4 py-3">{TABLE_HEADER_PATH}</th>
+                                            <th className="text-left px-4 py-3">{TABLE_HEADER_GROUP}</th>
+                                            <th className="text-right px-4 py-3">{TABLE_HEADER_ACTIONS}</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -96,7 +114,7 @@ export const CmsCollectionsManager: React.FC<CmsCollectionsManagerProps> = ({ fi
                                                     {collection.path}
                                                 </td>
                                                 <td className="px-4 py-3">
-                                                    {collection.group ?? "—"}
+                                                    {collection.group ?? DEFAULT_DASH_PLACEHOLDER}
                                                 </td>
                                                 <td className="px-4 py-3 text-right">
                                                     <Button
@@ -105,7 +123,7 @@ export const CmsCollectionsManager: React.FC<CmsCollectionsManagerProps> = ({ fi
                                                         size="small"
                                                         color="neutral"
                                                     >
-                                                        Edit
+                                                        {BUTTON_TEXT_EDIT}
                                                     </Button>
                                                 </td>
                                             </tr>
