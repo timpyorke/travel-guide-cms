@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo } from "react";
+import { FirebaseApp } from "firebase/app";
 
 import {
     AppBar,
@@ -25,12 +26,13 @@ import {
     useFirestoreDelegate,
     useInitialiseFirebase,
 } from "@firecms/firebase";
-import { CenteredView, Button } from "@firecms/ui";
+import { CenteredView, Button, Typography } from "@firecms/ui";
 import { useCmsCollections } from "./collections/CmsCollections";
 
 import { firebaseConfig } from "./firebase_config";
 import { CmsCollectionForm } from "./components/CmsCollectionForm";
 import { CmsCollectionsManager } from "./components/CmsCollectionsManager";
+import { StorageBrowser } from "./components/storage/StorageBrowser";
 import { Link, Route, useParams } from "react-router-dom";
 import { useEffect } from "react";
 import { useSnackbarController } from "@firecms/core";
@@ -191,6 +193,14 @@ function AppContent() {
                                     </Button>
                                     <Button
                                         size="small"
+                                        variant="outlined"
+                                        component={Link}
+                                        to={"/storage"}
+                                    >
+                                        Storage
+                                    </Button>
+                                    <Button
+                                        size="small"
                                         color="primary"
                                         component={Link}
                                         to={"/cms/collections/new"}
@@ -211,6 +221,10 @@ function AppContent() {
                             <Route
                                 path={"/cms/collections/:collectionId/edit"}
                                 element={<CmsCollectionEditView />}
+                            />
+                            <Route
+                                path={"/storage"}
+                                element={<StorageBrowserPage firebaseApp={firebaseApp} />}
                             />
                         </NavigationRoutes>
                         <SideDialogs />
@@ -235,6 +249,15 @@ const CmsCollectionsErrorToast: React.FC<{ error?: Error }> = ({ error }) => {
         }
     }, [error, snackbar]);
     return null;
+};
+
+const StorageBrowserPage: React.FC<{ firebaseApp: FirebaseApp }> = ({ firebaseApp }) => {
+    return (
+        <div className="p-4 flex flex-col gap-4">
+            <Typography variant="h4">Storage</Typography>
+            <StorageBrowser firebaseApp={firebaseApp} />
+        </div>
+    );
 };
 
 

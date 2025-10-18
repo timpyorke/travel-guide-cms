@@ -16,10 +16,17 @@ export type CmsCollectionPermissions = {
     delete?: boolean;
 };
 
+export type CmsStorageConfig = {
+    storagePath?: string;
+    acceptedFiles?: string[];
+    maxSize?: number;
+};
+
 export type CmsArrayPropertyConfig = {
     dataType?: string;
     enumValues?: Record<string, string>;
     path?: string;
+    storage?: CmsStorageConfig;
 };
 
 export type CmsPropertyConfig = {
@@ -31,6 +38,8 @@ export type CmsPropertyConfig = {
     enumValues?: Record<string, string>;
     path?: string;
     of?: CmsArrayPropertyConfig;
+    storage?: CmsStorageConfig;
+    defaultValue?: string;
 };
 
 export type CmsCollectionConfig = {
@@ -82,6 +91,14 @@ const buildArrayProperty = (config?: CmsArrayPropertyConfig) => {
         base.path = config.path.trim();
     }
 
+    if (dataType === "string" && config.storage?.storagePath) {
+        base.storage = {
+            storagePath: config.storage.storagePath,
+            acceptedFiles: config.storage.acceptedFiles,
+            maxSize: config.storage.maxSize
+        };
+    }
+
     return base;
 };
 
@@ -115,6 +132,13 @@ const buildProperty = (config?: CmsPropertyConfig) => {
             if (config.enumValues && Object.keys(config.enumValues).length > 0) {
                 base.enumValues = config.enumValues;
             }
+            if (config.storage?.storagePath) {
+                base.storage = {
+                    storagePath: config.storage.storagePath,
+                    acceptedFiles: config.storage.acceptedFiles,
+                    maxSize: config.storage.maxSize
+                };
+            }
             break;
         case "reference":
             if (!isNonEmptyString(config.path)) {
@@ -132,6 +156,10 @@ const buildProperty = (config?: CmsPropertyConfig) => {
         }
         default:
             break;
+    }
+
+    if (isNonEmptyString(config.defaultValue)) {
+        base.defaultValue = config.defaultValue.trim();
     }
 
     return base;

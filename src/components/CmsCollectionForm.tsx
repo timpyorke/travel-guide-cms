@@ -16,6 +16,7 @@ import {
     Typography
 } from "@firecms/ui";
 import { useSnackbarController } from "@firecms/core";
+import { StorageBrowserDialog } from "./storage/StorageBrowser";
 import type {
     CmsCollectionConfig,
     CmsCollectionPermissions,
@@ -54,6 +55,11 @@ type PropertyFormState = {
     arrayOfType: ArrayInnerType;
     arrayEnumValues: string[];
     arrayReferencePath: string;
+    storageEnabled: boolean;
+    storagePath: string;
+    storageAcceptedFiles: string;
+    storageMaxSize: string;
+    defaultValue: string;
 };
 
 type FormState = {
@@ -67,6 +73,13 @@ type FormState = {
     properties: PropertyFormState[];
 };
 
+type StoragePickerState = {
+    propertyIndex: number;
+    target: "storagePath" | "defaultValue";
+    selectionMode: "file" | "folder";
+    initialPath?: string;
+};
+
 const createEmptyProperty = (): PropertyFormState => ({
     id: generatePropertyId(),
     key: "",
@@ -78,7 +91,12 @@ const createEmptyProperty = (): PropertyFormState => ({
     referencePath: "",
     arrayOfType: "string",
     arrayEnumValues: [],
-    arrayReferencePath: ""
+    arrayReferencePath: "",
+    storageEnabled: false,
+    storagePath: "",
+    storageAcceptedFiles: "",
+    storageMaxSize: "",
+    defaultValue: ""
 });
 
 const createEmptyFormState = (): FormState => ({
@@ -133,7 +151,14 @@ const cmsPropertyToFormState = (propertyConfig?: CmsPropertyConfig): PropertyFor
         referencePath: propertyConfig.path?.trim() ?? "",
         arrayOfType: "string",
         arrayEnumValues: [],
-        arrayReferencePath: ""
+        arrayReferencePath: "",
+        storageEnabled: dataType === "string" && !!propertyConfig.storage?.storagePath,
+        storagePath: propertyConfig.storage?.storagePath?.trim() ?? "",
+        storageAcceptedFiles: propertyConfig.storage?.acceptedFiles?.join(", ") ?? "",
+        storageMaxSize: propertyConfig.storage?.maxSize
+            ? (propertyConfig.storage.maxSize / (1024 * 1024)).toString()
+            : "",
+        defaultValue: propertyConfig.defaultValue?.trim() ?? ""
     };
 
     if (dataType === "array") {
@@ -144,6 +169,14 @@ const cmsPropertyToFormState = (propertyConfig?: CmsPropertyConfig): PropertyFor
         property.arrayReferencePath = arrayDataType === "reference"
             ? arrayConfig?.path?.trim() ?? ""
             : "";
+    }
+
+    if (dataType !== "string") {
+        property.storageEnabled = false;
+        property.storagePath = "";
+        property.storageAcceptedFiles = "";
+        property.storageMaxSize = "";
+        property.defaultValue = "";
     }
 
     return property;
@@ -184,7 +217,15 @@ const sanitizeFormState = (state: FormState): FormState => ({
         referencePath: property.referencePath.trim(),
         arrayReferencePath: property.arrayReferencePath.trim(),
         enumValues: property.enumValues.map((value) => value.trim()).filter(Boolean),
-        arrayEnumValues: property.arrayEnumValues.map((value) => value.trim()).filter(Boolean)
+        arrayEnumValues: property.arrayEnumValues.map((value) => value.trim()).filter(Boolean),
+        storagePath: property.storagePath.trim(),
+        storageAcceptedFiles: property.storageAcceptedFiles
+            .split(",")
+            .map((value) => value.trim())
+            .filter(Boolean)
+            .join(", "),
+        storageMaxSize: property.storageMaxSize.trim(),
+        defaultValue: property.defaultValue.trim()
     }))
 });
 
@@ -214,6 +255,15 @@ const validateForm = (state: FormState): string | null => {
         if (property.dataType === "array") {
             if (property.arrayOfType === "reference" && !property.arrayReferencePath) {
                 return `Array property "${property.key}" requires a reference path.`;
+            }
+        }
+        if (property.dataType === "string" && property.storageEnabled && !property.storagePath) {
+            return `Property "${property.key || "unnamed"}" requires a storage folder.`;
+        }
+        if (property.dataType === "string" && property.storageEnabled && property.storageMaxSize) {
+            const numericSize = Number(property.storageMaxSize);
+            if (Number.isNaN(numericSize) || numericSize < 0) {
+                return `Property "${property.key || "unnamed"}" has an invalid max file size.`;
             }
         }
     }
@@ -260,6 +310,24 @@ const buildPropertyPayload = (property: PropertyFormState) => {
         base.of = of;
     }
 
+    if (baseProperty.dataType === "string" && baseProperty.storageEnabled && baseProperty.storagePath) {
+        const acceptedFiles = baseProperty.storageAcceptedFiles
+            ? baseProperty.storageAcceptedFiles.split(",").map((value) => value.trim()).filter(Boolean)
+            : undefined;
+        const maxSizeBytes = baseProperty.storageMaxSize
+            ? Math.round(Number(baseProperty.storageMaxSize) * 1024 * 1024)
+            : undefined;
+        base.storage = {
+            storagePath: baseProperty.storagePath,
+            acceptedFiles,
+            maxSize: maxSizeBytes && !Number.isNaN(maxSizeBytes) ? maxSizeBytes : undefined
+        };
+    }
+
+    if (baseProperty.defaultValue) {
+        base.defaultValue = baseProperty.defaultValue;
+    }
+
     return base;
 };
 
@@ -292,6 +360,7 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
     const [loadingExisting, setLoadingExisting] = useState<boolean>(isEditMode);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [storagePicker, setStoragePicker] = useState<StoragePickerState | null>(null);
 
     const applySnapshot = useCallback((snapshot: FormState) => {
         setFormState(cloneFormState(snapshot));
@@ -383,6 +452,13 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                         updated.arrayEnumValues = [];
                         updated.arrayReferencePath = "";
                     }
+                    if (value !== "string") {
+                        updated.storageEnabled = false;
+                        updated.storagePath = "";
+                        updated.storageAcceptedFiles = "";
+                        updated.storageMaxSize = "";
+                        updated.defaultValue = "";
+                    }
                 }
 
                 if (key === "arrayOfType") {
@@ -394,6 +470,13 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                     }
                 }
 
+                if (key === "storageEnabled" && value === false) {
+                    updated.storagePath = "";
+                    updated.storageAcceptedFiles = "";
+                    updated.storageMaxSize = "";
+                    updated.defaultValue = "";
+                }
+
                 return updated;
             });
             return {
@@ -401,6 +484,40 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                 properties
             };
         });
+    };
+
+    const openStoragePicker = (propertyIndex: number, target: "storagePath" | "defaultValue") => {
+        const property = formState.properties[propertyIndex];
+        setStoragePicker({
+            propertyIndex,
+            target,
+            selectionMode: target === "storagePath" ? "folder" : "file",
+            initialPath: target === "storagePath" ? property.storagePath : property.defaultValue
+        });
+    };
+
+    const closeStoragePicker = () => setStoragePicker(null);
+
+    const handleStorageSelect = (path: string) => {
+        if (!storagePicker) return;
+        setFormState((current) => {
+            const properties = current.properties.map((property, index) => {
+                if (index !== storagePicker.propertyIndex) return property;
+                const updated = { ...property };
+                if (storagePicker.target === "storagePath") {
+                    updated.storagePath = path;
+                    updated.storageEnabled = true;
+                } else {
+                    updated.defaultValue = path;
+                }
+                return updated;
+            });
+            return {
+                ...current,
+                properties
+            };
+        });
+        setStoragePicker(null);
     };
 
     const addProperty = () => {
@@ -716,6 +833,96 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                                     />
 
                                     {property.dataType === "string" && (
+                                        <div className="flex flex-col gap-3 border border-surface-200 dark:border-surface-700 rounded-md p-3">
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    id={`storage-enabled-${index}`}
+                                                    type="checkbox"
+                                                    checked={property.storageEnabled}
+                                                    onChange={(event) => handlePropertyChange(index, "storageEnabled", event.target.checked)}
+                                                    disabled={formBusy}
+                                                />
+                                                <label htmlFor={`storage-enabled-${index}`} className="text-sm text-text-secondary dark:text-text-secondary-dark">
+                                                    Enable storage upload field
+                                                </label>
+                                            </div>
+                                            {property.storageEnabled && (
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                    <TextField
+                                                        label="Storage folder"
+                                                        value={property.storagePath}
+                                                        onChange={(event) => handlePropertyChange(index, "storagePath", event.target.value)}
+                                                        placeholder="images"
+                                                        disabled={formBusy}
+                                                    />
+                                                    <div className="flex items-end gap-2">
+                                                        <Button
+                                                            size="small"
+                                                            variant="outlined"
+                                                            onClick={() => openStoragePicker(index, "storagePath")}
+                                                            disabled={formBusy}
+                                                        >
+                                                            Browse storage
+                                                        </Button>
+                                                        {property.storagePath && (
+                                                            <Button
+                                                                size="small"
+                                                                variant="text"
+                                                                onClick={() => handlePropertyChange(index, "storagePath", "")}
+                                                                disabled={formBusy}
+                                                            >
+                                                                Clear
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                    <TextField
+                                                        label="Accepted file types (comma separated)"
+                                                        value={property.storageAcceptedFiles}
+                                                        onChange={(event) => handlePropertyChange(index, "storageAcceptedFiles", event.target.value)}
+                                                        placeholder="image/*,application/pdf"
+                                                        disabled={formBusy}
+                                                    />
+                                                    <TextField
+                                                        label="Max file size (MB)"
+                                                        value={property.storageMaxSize}
+                                                        onChange={(event) => handlePropertyChange(index, "storageMaxSize", event.target.value)}
+                                                        type="number"
+                                                        placeholder="10"
+                                                        disabled={formBusy}
+                                                    />
+                                                    <TextField
+                                                        label="Default value (file path)"
+                                                        value={property.defaultValue}
+                                                        onChange={(event) => handlePropertyChange(index, "defaultValue", event.target.value)}
+                                                        placeholder="Optional path to an existing file"
+                                                        disabled={formBusy}
+                                                    />
+                                                    <div className="flex items-end gap-2">
+                                                        <Button
+                                                            size="small"
+                                                            variant="outlined"
+                                                            onClick={() => openStoragePicker(index, "defaultValue")}
+                                                            disabled={formBusy}
+                                                        >
+                                                            Select file
+                                                        </Button>
+                                                        {property.defaultValue && (
+                                                            <Button
+                                                                size="small"
+                                                                variant="text"
+                                                                onClick={() => handlePropertyChange(index, "defaultValue", "")}
+                                                                disabled={formBusy}
+                                                            >
+                                                                Clear
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {property.dataType === "string" && (
                                         <TextField
                                             label="Enum values (optional)"
                                             multiline
@@ -822,6 +1029,15 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                     </div>
                 </form>
             </Paper>
+            <StorageBrowserDialog
+                firebaseApp={firebaseApp}
+                open={Boolean(storagePicker)}
+                onClose={closeStoragePicker}
+                selectionMode={storagePicker?.selectionMode ?? "file"}
+                initialPath={storagePicker?.initialPath}
+                onSelect={(path) => handleStorageSelect(path)}
+                title={storagePicker?.target === "storagePath" ? "Select storage folder" : "Select file"}
+            />
         </div>
     );
 };
