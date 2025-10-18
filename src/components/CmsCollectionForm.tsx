@@ -18,7 +18,7 @@ import {
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from "../localization";
 
 import { useSnackbarController } from "@firecms/core";
-import { StorageBrowserDialog } from "./storage/StorageBrowser";
+import { StorageBrowserDialog } from "./StorageBrowser";
 import type {
     CmsCollectionConfig,
     CmsCollectionPermissions,
@@ -27,54 +27,12 @@ import type {
 import {
     ICON_OPTIONS,
     DEFAULT_CMS_COLLECTION_PERMISSIONS,
-    CMS_COLLECTIONS_PATH,
     STRING_DATA_TYPE,
-    DATE_TIME_DATA_TYPE,
-    DATE_DATA_TYPE,
-    REFERENCE_DATA_TYPE,
-    ARRAY_DATA_TYPE,
-    NUMBER_DATA_TYPE,
-    BOOLEAN_DATA_TYPE,
-    ZERO_LENGTH,
     EMPTY_STRING,
-    BYTES_IN_MB,
-    DEFAULT_SUCCESS_SNACKBAR_DURATION,
-    DEFAULT_ERROR_SNACKBAR_DURATION,
-    EXTENDED_ERROR_SNACKBAR_DURATION,
-    DEFAULT_MIN_ROWS,
-    FORM_MIN_ROWS_3,
     PROPERTY_ID_PREFIX,
     PROPERTY_ID_RANDOM_LENGTH,
     PROPERTY_ID_BASE_36,
     PROPERTY_ID_SLICE_START,
-    VALIDATION_COLLECTION_ID_REQUIRED,
-    VALIDATION_COLLECTION_ID_FORMAT,
-    VALIDATION_COLLECTION_NAME_REQUIRED,
-    VALIDATION_FIRESTORE_PATH_REQUIRED,
-    VALIDATION_ONE_PROPERTY_REQUIRED,
-    VALIDATION_PROPERTY_KEY_REQUIRED,
-    VALIDATION_REFERENCE_PATH_REQUIRED,
-    VALIDATION_ARRAY_REFERENCE_PATH_REQUIRED,
-    VALIDATION_STORAGE_FOLDER_REQUIRED,
-    VALIDATION_INVALID_FILE_SIZE,
-    COLLECTION_ID_REGEX,
-    CONSOLE_ERROR_SAVING_COLLECTION,
-    ERROR_MESSAGE_UNEXPECTED_ERROR,
-    SUCCESS_MESSAGE_UPDATED_SUCCESSFULLY,
-    SUCCESS_MESSAGE_CREATED_SUCCESSFULLY,
-    SUCCESS_MESSAGE_SAVED,
-    SUCCESS_MESSAGE_CREATED,
-    LOADING_TEXT_SAVING,
-    LOADING_TEXT_CREATING,
-    BUTTON_TEXT_SAVE_CHANGES,
-    BUTTON_TEXT_CREATE_COLLECTION,
-    BUTTON_TEXT_RESET_FORM,
-    BUTTON_TEXT_CANCEL,
-    BUTTON_TEXT_ADD_PROPERTY,
-    BUTTON_TEXT_REMOVE,
-    BUTTON_TEXT_BROWSE_STORAGE,
-    BUTTON_TEXT_CLEAR,
-    BUTTON_TEXT_SELECT_FILE,
     LABEL_COLLECTION_ID,
     LABEL_DISPLAY_NAME,
     LABEL_FIRESTORE_PATH,
@@ -91,59 +49,7 @@ import {
     LABEL_DEFAULT_VALUE_FILE_PATH,
     LABEL_ENUM_VALUES_OPTIONAL,
     LABEL_REFERENCE_PATH,
-    LABEL_ARRAY_ITEM_TYPE,
-    PLACEHOLDER_LOCATIONS,
-    PLACEHOLDER_LOCATIONS_DISPLAY,
-    PLACEHOLDER_LOCATIONS_PATH,
-    PLACEHOLDER_TRAVEL,
-    PLACEHOLDER_TITLE,
-    PLACEHOLDER_TITLE_DISPLAY,
-    PLACEHOLDER_IMAGES,
-    PLACEHOLDER_IMAGE_PDF_TYPES,
-    PLACEHOLDER_FILE_SIZE_10,
-    PLACEHOLDER_OPTIONAL_FILE_PATH,
-    PLACEHOLDER_ADD_ONE_VALUE_PER_LINE,
-    PLACEHOLDER_PRODUCTS_REFERENCE,
-    PLACEHOLDER_LOCALIZED_NAME,
-    PLACEHOLDER_LOCALIZED_GROUP,
-    PLACEHOLDER_LOCALIZED_DESCRIPTION,
-    PLACEHOLDER_HELP_OTHER_EDITORS,
-    PLACEHOLDER_EXPLAIN_PURPOSE,
-    SECTION_LOCALIZED_CONTENT,
-    SECTION_PERMISSIONS,
-    SECTION_PROPERTIES,
-    SECTION_DISPLAY_OPTIONS,
-    HEADER_CREATE_CMS_COLLECTION,
-    HEADER_EDIT_CMS_COLLECTION,
-    HEADER_FIELD_NUMBER,
-    DESCRIPTION_CREATE_COLLECTION,
-    DESCRIPTION_EDIT_COLLECTION,
-    PERMISSION_READ,
-    PERMISSION_CREATE,
-    PERMISSION_EDIT,
-    PERMISSION_DELETE,
-    DEFAULT_NONE_OPTION,
-    DEFAULT_STRING_OPTION,
-    DEFAULT_NUMBER_OPTION,
-    DEFAULT_BOOLEAN_OPTION,
-    DEFAULT_DATE_OPTION,
-    DEFAULT_DATE_TIME_OPTION,
-    DEFAULT_REFERENCE_OPTION,
-    DEFAULT_ARRAY_OPTION,
-    DEFAULT_MANUAL_ENTRY,
-    DEFAULT_AUTO_SET_ON_CREATION,
-    DEFAULT_AUTO_SET_ON_UPDATE,
-    DEFAULT_AUTO_SET_ON_CREATE_UPDATE,
-    CHECKBOX_REQUIRED,
-    CHECKBOX_ENABLE_STORAGE_UPLOAD,
-    CHECKBOX_MULTILINE_INPUT,
-    CHECKBOX_MARKDOWN_EDITOR,
-    CHECKBOX_LOCALIZED_CONTENT,
-    AUTO_VALUE_ON_CREATE,
-    AUTO_VALUE_ON_UPDATE,
-    AUTO_VALUE_ON_CREATE_UPDATE,
-    DIALOG_TITLE_SELECT_STORAGE_FOLDER,
-    DIALOG_TITLE_SELECT_FILE
+    LABEL_ARRAY_ITEM_TYPE
 } from "../constants";
 
 type ScalarDataType =
@@ -926,7 +832,7 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                 <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
                     <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <TextField
-                            label="Collection ID"
+                            label={LABEL_COLLECTION_ID}
                             value={formState.collectionId}
                             onChange={(event) => setFormState((current) => ({
                                 ...current,
@@ -937,7 +843,7 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                             disabled={formBusy || isEditMode}
                         />
                         <TextField
-                            label="Display name"
+                            label={LABEL_DISPLAY_NAME}
                             value={formState.name}
                             onChange={(event) => setFormState((current) => {
                                 const value = event.target.value;
@@ -959,7 +865,7 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                             disabled={formBusy}
                         />
                         <TextField
-                            label="Firestore path"
+                            label={LABEL_FIRESTORE_PATH}
                             value={formState.path}
                             onChange={(event) => setFormState((current) => ({
                                 ...current,
@@ -970,7 +876,7 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                             disabled={formBusy}
                         />
                         <TextField
-                            label="Group (optional)"
+                            label={LABEL_GROUP_OPTIONAL}
                             value={formState.group}
                             onChange={(event) => setFormState((current) => {
                                 const value = event.target.value;
@@ -992,7 +898,7 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                         />
                         <div className="flex flex-col gap-2">
                             <label className="text-sm font-medium text-text-secondary dark:text-text-secondary-dark">
-                                Icon (optional)
+                                {LABEL_ICON_OPTIONAL}
                             </label>
                             <div className="flex items-center gap-2">
                                 <select
@@ -1016,7 +922,7 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                     </section>
 
                     <TextField
-                        label="Description (optional)"
+                        label={LABEL_DESCRIPTION_OPTIONAL}
                         multiline
                         minRows={3}
                         value={formState.description}
@@ -1134,7 +1040,7 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                         <TextField
-                                            label="Field key"
+                                            label={LABEL_FIELD_KEY}
                                             value={property.key}
                                             onChange={(event) => handlePropertyChange(index, "key", event.target.value)}
                                             placeholder="title"
@@ -1142,7 +1048,7 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                                             disabled={formBusy}
                                         />
                                         <TextField
-                                            label="Display name (optional)"
+                                            label={LABEL_DISPLAY_NAME_OPTIONAL}
                                             value={property.name}
                                             onChange={(event) => handlePropertyChange(index, "name", event.target.value)}
                                             placeholder="Title"
@@ -1150,7 +1056,7 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                                         />
                                         <div className="flex flex-col gap-2">
                                             <label className="text-sm font-medium text-text-secondary dark:text-text-secondary-dark">
-                                                Data type
+                                                {LABEL_DATA_TYPE}
                                             </label>
                                             <select
                                                 className="h-12 rounded-md border border-surface-300 dark:border-surface-700 bg-white dark:bg-surface-900 px-3"
@@ -1182,7 +1088,7 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                                     </div>
 
                                     <TextField
-                                        label="Description (optional)"
+                                        label={LABEL_DESCRIPTION_OPTIONAL_FIELD}
                                         multiline
                                         minRows={2}
                                         value={property.description}
@@ -1208,7 +1114,7 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                                             {property.storageEnabled && (
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                                     <TextField
-                                                        label="Storage folder"
+                                                        label={LABEL_STORAGE_FOLDER}
                                                         value={property.storagePath}
                                                         onChange={(event) => handlePropertyChange(index, "storagePath", event.target.value)}
                                                         placeholder="images"
@@ -1235,14 +1141,14 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                                                         )}
                                                     </div>
                                                     <TextField
-                                                        label="Accepted file types (comma separated)"
+                                                        label={LABEL_ACCEPTED_FILE_TYPES}
                                                         value={property.storageAcceptedFiles}
                                                         onChange={(event) => handlePropertyChange(index, "storageAcceptedFiles", event.target.value)}
                                                         placeholder="image/*,application/pdf"
                                                         disabled={formBusy}
                                                     />
                                                     <TextField
-                                                        label="Max file size (MB)"
+                                                        label={LABEL_MAX_FILE_SIZE_MB}
                                                         value={property.storageMaxSize}
                                                         onChange={(event) => handlePropertyChange(index, "storageMaxSize", event.target.value)}
                                                         type="number"
@@ -1250,7 +1156,7 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                                                         disabled={formBusy}
                                                     />
                                                     <TextField
-                                                        label="Default value (file path)"
+                                                        label={LABEL_DEFAULT_VALUE_FILE_PATH}
                                                         value={property.defaultValue}
                                                         onChange={(event) => handlePropertyChange(index, "defaultValue", event.target.value)}
                                                         placeholder="Optional path to an existing file"
@@ -1316,7 +1222,7 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
 
                                     {property.dataType === "string" && (
                                         <TextField
-                                            label="Enum values (optional)"
+                                            label={LABEL_ENUM_VALUES_OPTIONAL}
                                             multiline
                                             minRows={2}
                                             value={property.enumValues.join("\n")}
@@ -1381,7 +1287,7 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
 
                                     {property.dataType === "reference" && (
                                         <TextField
-                                            label="Reference path"
+                                            label={LABEL_REFERENCE_PATH}
                                             value={property.referencePath}
                                             onChange={(event) => handlePropertyChange(index, "referencePath", event.target.value)}
                                             placeholder="e.g. products"
@@ -1394,7 +1300,7 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                                         <div className="flex flex-col gap-4">
                                             <div className="flex flex-col gap-2">
                                                 <label className="text-sm font-medium text-text-secondary dark:text-text-secondary-dark">
-                                                    Array item type
+                                                    {LABEL_ARRAY_ITEM_TYPE}
                                                 </label>
                                                 <select
                                                     className="h-12 rounded-md border border-surface-300 dark:border-surface-700 bg-white dark:bg-surface-900 px-3"
@@ -1409,7 +1315,7 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
 
                                             {property.arrayOfType === "string" && (
                                                 <TextField
-                                                    label="Enum values (optional)"
+                                                    label={LABEL_ENUM_VALUES_OPTIONAL}
                                                     multiline
                                                     minRows={2}
                                                     value={property.arrayEnumValues.join("\n")}
@@ -1425,7 +1331,7 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
 
                                             {property.arrayOfType === "reference" && (
                                                 <TextField
-                                                    label="Reference path"
+                                                    label={LABEL_REFERENCE_PATH}
                                                     value={property.arrayReferencePath}
                                                     onChange={(event) => handlePropertyChange(index, "arrayReferencePath", event.target.value)}
                                                     placeholder="e.g. products"

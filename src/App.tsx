@@ -34,7 +34,7 @@ import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from "./localization";
 import { firebaseConfig } from "./firebase_config";
 import { CmsCollectionForm } from "./components/CmsCollectionForm";
 import { CmsCollectionsManager } from "./components/CmsCollectionsManager";
-import { StorageBrowser } from "./components/storage/StorageBrowser";
+import { StorageBrowser } from "./components/StorageBrowser";
 import { Link, Route, useParams } from "react-router-dom";
 import { useSnackbarController } from "@firecms/core";
 import { SnackbarProvider as NotistackSnackbarProvider } from "notistack";

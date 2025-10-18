@@ -24,7 +24,6 @@ import {
     TABLE_HEADER_ACTIONS,
     BUTTON_TEXT_EDIT,
     DEFAULT_DASH_PLACEHOLDER,
-    CODE_TAG,
     ZERO_LENGTH
 } from "../constants";
 

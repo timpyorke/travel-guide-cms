@@ -17,12 +17,8 @@ import {
     REFERENCE_DATA_TYPE,
     ARRAY_DATA_TYPE,
     MAP_DATA_TYPE,
-    VALIDATION_REQUIRED,
     MODE_DATE,
     MODE_DATE_TIME,
-    AUTO_VALUE_ON_CREATE,
-    AUTO_VALUE_ON_UPDATE,
-    AUTO_VALUE_ON_CREATE_UPDATE,
     PROPERTY_EXPANDED,
     PROPERTY_MULTILINE,
     PROPERTY_MARKDOWN,
@@ -33,11 +29,7 @@ import {
     DEFAULT_CMS_COLLECTION_PERMISSIONS
 } from "../constants";
 import type {
-    PropertyDefinition,
-    CmsCollectionData,
     PropertyArrayConfig,
-    StringProperty,
-    ErrorWithMessage,
     DynamicProperty
 } from "../types";
 
