@@ -162,7 +162,8 @@ type AutoValueOption = "on_create" | "on_update" | "on_create_update" | undefine
 type PermissionState = Required<CmsCollectionPermissions>;
 
 const generatePropertyId = (): string => {
-    const randomUUID = (globalThis as any)?.crypto?.randomUUID?.();
+    const globalThis = (window as unknown) as { crypto?: { randomUUID?: () => string } };
+    const randomUUID = globalThis?.crypto?.randomUUID?.();
     if (randomUUID) return randomUUID;
     return `${PROPERTY_ID_PREFIX}${Math.random().toString(PROPERTY_ID_BASE_36).slice(PROPERTY_ID_SLICE_START, PROPERTY_ID_RANDOM_LENGTH)}_${Date.now()}`;
 };
@@ -370,15 +371,18 @@ const cmsConfigToFormState = (config: CmsCollectionConfig): FormState => ({
         const localizationState = buildEmptyLocalizations();
         SUPPORTED_LOCALES.forEach(({ code }) => {
             const localized = config.localizations?.[code];
-            if (localized?.name) localizationState[code].name = localized.name;
-            if (localized?.description) localizationState[code].description = localized.description;
-            if (localized?.group) localizationState[code].group = localized.group;
+            if (localized?.name && localizationState[code]) localizationState[code]!.name = localized.name;
+            if (localized?.description && localizationState[code]) localizationState[code]!.description = localized.description;
+            if (localized?.group && localizationState[code]) localizationState[code]!.group = localized.group;
         });
-        localizationState[DEFAULT_LOCALE] = {
-            name: config.name?.trim() ?? localizationState[DEFAULT_LOCALE].name,
-            description: config.description?.trim() ?? localizationState[DEFAULT_LOCALE].description,
-            group: config.group?.trim() ?? localizationState[DEFAULT_LOCALE].group
-        };
+        const defaultLocalization = localizationState[DEFAULT_LOCALE];
+        if (defaultLocalization) {
+            localizationState[DEFAULT_LOCALE] = {
+                name: config.name?.trim() ?? defaultLocalization.name,
+                description: config.description?.trim() ?? defaultLocalization.description,
+                group: config.group?.trim() ?? defaultLocalization.group
+            };
+        }
         return localizationState;
     })()
 });
@@ -469,7 +473,7 @@ const buildPropertyPayload = (property: PropertyFormState) => {
         ...rest
     } = property;
     const baseProperty = rest;
-    const base: Record<string, any> = {
+    const base: Record<string, unknown> = {
         key: baseProperty.key,
         dataType: baseProperty.dataType
     };
@@ -492,7 +496,7 @@ const buildPropertyPayload = (property: PropertyFormState) => {
     }
 
     if (baseProperty.dataType === "array") {
-        const of: Record<string, any> = {
+        const of: Record<string, unknown> = {
             dataType: baseProperty.arrayOfType
         };
         if (baseProperty.arrayOfType === "string") {
@@ -614,9 +618,10 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                     setErrorMessage(null);
                     setSuccessMessage(null);
                 }
-            } catch (error: any) {
+            } catch (error: unknown) {
                 if (!isCancelled) {
-                    setErrorMessage(error?.message ?? "Unexpected error loading the collection.");
+                    const errorMessage = error instanceof Error ? error.message : "Unexpected error loading the collection.";
+                    setErrorMessage(errorMessage);
                 }
             } finally {
                 if (!isCancelled) {
@@ -738,6 +743,8 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
 
     const openStoragePicker = (propertyIndex: number, target: "storagePath" | "defaultValue") => {
         const property = formState.properties[propertyIndex];
+        if (!property) return;
+
         setStoragePicker({
             propertyIndex,
             target,
@@ -841,7 +848,7 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
             }, {} as Record<string, Record<string, string>>);
 
             if (Object.keys(localizationPayload).length > 0) {
-                (payload as any).localizations = localizationPayload;
+                (payload as Record<string, unknown>).localizations = localizationPayload;
             }
 
             await setDoc(doc(firestore, "cms_collections", sanitizedState.collectionId), payload);
@@ -864,12 +871,13 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                 const defaultState = createEmptyFormState();
                 applySnapshot(defaultState);
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Error saving collection", error);
-            setErrorMessage(error?.message ?? "Unexpected error saving the collection.");
+            const errorMessage = error instanceof Error ? error.message : "Unexpected error saving the collection.";
+            setErrorMessage(errorMessage);
             snackbar.open({
                 type: "error",
-                message: error?.message ?? "Unexpected error saving the collection.",
+                message: errorMessage,
                 autoHideDuration: 5000
             });
         } finally {

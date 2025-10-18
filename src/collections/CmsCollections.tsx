@@ -32,6 +32,14 @@ import {
     ERROR_MESSAGE_CMS_COLLECTIONS,
     DEFAULT_CMS_COLLECTION_PERMISSIONS
 } from "../constants";
+import type {
+    PropertyDefinition,
+    CmsCollectionData,
+    PropertyArrayConfig,
+    StringProperty,
+    ErrorWithMessage,
+    DynamicProperty
+} from "../types";
 
 export type CmsCollectionPermissions = {
     read?: boolean;
@@ -100,11 +108,11 @@ const normalizePermissions = (permissions?: CmsCollectionPermissions) => ({
     delete: permissions?.delete ?? DEFAULT_CMS_COLLECTION_PERMISSIONS.delete
 });
 
-const buildArrayProperty = (config?: CmsArrayPropertyConfig) => {
+const buildArrayProperty = (config?: CmsArrayPropertyConfig): PropertyArrayConfig | undefined => {
     if (!config?.dataType) return undefined;
 
     const dataType = config.dataType;
-    const base: Record<string, any> = {
+    const base: PropertyArrayConfig = {
         dataType: dataType === DATE_TIME_DATA_TYPE ? DATE_DATA_TYPE : dataType
     };
 
@@ -131,10 +139,10 @@ const buildArrayProperty = (config?: CmsArrayPropertyConfig) => {
     return base;
 };
 
-const buildProperty = (config?: CmsPropertyConfig) => {
+const buildProperty = (config?: CmsPropertyConfig): DynamicProperty | undefined => {
     if (!config?.key || !config?.dataType) return undefined;
 
-    const base: Record<string, any> = {
+    const base: DynamicProperty = {
         dataType: config.dataType === DATE_TIME_DATA_TYPE ? DATE_DATA_TYPE : config.dataType
     };
 
@@ -150,7 +158,7 @@ const buildProperty = (config?: CmsPropertyConfig) => {
         base.validation = { required: PROPERTY_REQUIRED };
     }
 
-    const applyStringOptions = (target: Record<string, any>) => {
+    const applyStringOptions = (target: DynamicProperty) => {
         if (config.enumValues && Object.keys(config.enumValues).length > ZERO_LENGTH) {
             target.enumValues = config.enumValues;
         }
@@ -174,14 +182,14 @@ const buildProperty = (config?: CmsPropertyConfig) => {
             dataType: MAP_DATA_TYPE,
             expanded: PROPERTY_EXPANDED,
             properties: SUPPORTED_LOCALES.reduce((acc, locale) => {
-                const child: Record<string, any> = {
+                const child: DynamicProperty = {
                     name: locale.label,
                     dataType: STRING_DATA_TYPE
                 };
                 applyStringOptions(child);
                 acc[locale.code] = child;
                 return acc;
-            }, {} as Record<string, any>)
+            }, {} as Record<string, DynamicProperty>)
         };
     }
 
@@ -229,7 +237,7 @@ const snapshotToEntityCollection = (snapshot: QueryDocumentSnapshot<DocumentData
     }
 
     const propertiesArray = Array.isArray(data.properties) ? data.properties : [];
-    const properties = propertiesArray.reduce<Record<string, any>>((acc, propertyConfig) => {
+    const properties = propertiesArray.reduce<Record<string, DynamicProperty>>((acc, propertyConfig) => {
         const property = buildProperty(propertyConfig);
         if (property && propertyConfig?.key) {
             acc[propertyConfig.key.trim()] = property;
@@ -260,7 +268,7 @@ const snapshotToEntityCollection = (snapshot: QueryDocumentSnapshot<DocumentData
         group: getLocalizedValue(data.group, localization?.group),
         icon: data.icon,
         permissions,
-        properties
+        properties: properties as any
     };
 };
 

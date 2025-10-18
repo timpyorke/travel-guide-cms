@@ -62,6 +62,7 @@ import {
     DEFAULT_ERROR_SNACKBAR_DURATION,
     ERROR_MESSAGE_FAILED_LOAD_CMS_COLLECTIONS
 } from "./constants";
+import type { CustomizationController } from "./types";
 
 const CustomSnackbarProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     <NotistackSnackbarProvider
@@ -214,9 +215,9 @@ function AppContent() {
                     context,
                     loading
                 }) => {
-                    const customizationController = useCustomizationController();
+                    const customizationController = useCustomizationController() as CustomizationController | null;
                     if (customizationController) {
-                        customizationController.locale = activeLocale as any;
+                        customizationController.locale = activeLocale;
                     }
 
                     if (loading || authLoading || cmsCollectionsLoading) {

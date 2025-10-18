@@ -183,7 +183,7 @@ export const StorageBrowser: React.FC<StorageBrowserProps> = ({
                         size: metadata.size,
                         updated: metadata.updated ? new Date(metadata.updated) : undefined
                     };
-                } catch (metadataError: any) {
+                } catch (metadataError: unknown) {
                     console.error("Failed to fetch metadata for", item.fullPath, metadataError);
                     return {
                         name: item.name,
@@ -199,9 +199,10 @@ export const StorageBrowser: React.FC<StorageBrowserProps> = ({
             ];
 
             setItems(sortedItems);
-        } catch (e: any) {
+        } catch (e: unknown) {
             console.error("Error listing storage contents", e);
-            setError(e?.message ?? "Error loading storage contents.");
+            const errorMessage = e instanceof Error ? e.message : "Error loading storage contents.";
+            setError(errorMessage);
         } finally {
             setLoading(false);
         }
@@ -287,9 +288,10 @@ export const StorageBrowser: React.FC<StorageBrowserProps> = ({
             setNewFolderName("");
             setCreateFolderError(null);
             refreshItems();
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Failed to create folder", err);
-            setCreateFolderError(err?.message ?? "Failed to create folder");
+            const errorMessage = err instanceof Error ? err.message : "Failed to create folder";
+            setCreateFolderError(errorMessage);
         } finally {
             setCreatingFolder(false);
         }
@@ -306,9 +308,10 @@ export const StorageBrowser: React.FC<StorageBrowserProps> = ({
                 await deleteObject(storageRef(storage, item.fullPath));
             }
             refreshItems();
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Failed to delete storage item", err);
-            alert("Failed to delete: " + (err?.message ?? "Unknown error"));
+            const errorMessage = err instanceof Error ? err.message : "Unknown error";
+            alert("Failed to delete: " + errorMessage);
         } finally {
             setDeletingPath(null);
         }
@@ -327,9 +330,10 @@ export const StorageBrowser: React.FC<StorageBrowserProps> = ({
         try {
             const url = await getDownloadURL(storageRef(storage, item.fullPath));
             window.open(url, "_blank");
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Failed to download storage item", err);
-            alert("Failed to download: " + (err?.message ?? "Unknown error"));
+            const errorMessage = err instanceof Error ? err.message : "Unknown error";
+            alert("Failed to download: " + errorMessage);
         }
     };
 
@@ -338,9 +342,10 @@ export const StorageBrowser: React.FC<StorageBrowserProps> = ({
             const url = await getDownloadURL(storageRef(storage, item.fullPath));
             setPreviewUrl(url);
             setPreviewName(item.name);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Failed to preview storage item", err);
-            alert("Failed to preview: " + (err?.message ?? "Unknown error"));
+            const errorMessage = err instanceof Error ? err.message : "Unknown error";
+            alert("Failed to preview: " + errorMessage);
         }
     };
 
