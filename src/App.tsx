@@ -123,6 +123,16 @@ function AppContent() {
         error: cmsCollectionsError
     } = useCmsCollections(firebaseApp);
 
+    const storageViews = useMemo(() => {
+        if (!firebaseApp) return [];
+        return [{
+            path: "storage",
+            name: "Storage",
+            icon: "image",
+            view: <StorageBrowserPage firebaseApp={firebaseApp} />
+        }];
+    }, [firebaseApp]);
+
     const collections = useMemo(() => [
         ...cmsCollections,
     ], [cmsCollections]);
@@ -130,6 +140,7 @@ function AppContent() {
     const navigationController = useBuildNavigationController({
         disabled: authLoading || cmsCollectionsLoading,
         collections,
+        views: storageViews,
         authController,
         dataSourceDelegate: firestoreDelegate
     });
@@ -190,14 +201,6 @@ function AppContent() {
                                         to={"/cms/collections"}
                                     >
                                         Manage collections
-                                    </Button>
-                                    <Button
-                                        size="small"
-                                        variant="outlined"
-                                        component={Link}
-                                        to={"/storage"}
-                                    >
-                                        Storage
                                     </Button>
                                     <Button
                                         size="small"

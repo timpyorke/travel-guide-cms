@@ -7,6 +7,7 @@ import {
     getStorage,
     listAll,
     ref as storageRef,
+    uploadBytes,
     uploadBytesResumable
 } from "firebase/storage";
 import {
@@ -17,8 +18,8 @@ import {
     DialogActions,
     DialogContent,
     DialogTitle,
-    IconButton,
     Paper,
+    TextField,
     Typography
 } from "@firecms/ui";
 
@@ -63,6 +64,8 @@ const getFileExtension = (name: string) => {
     return name.substring(index + 1).toLowerCase();
 };
 
+const FOLDER_PLACEHOLDER = ".keep";
+
 export const StorageBrowser: React.FC<StorageBrowserProps> = ({
     firebaseApp,
     initialPath = "",
@@ -86,6 +89,11 @@ export const StorageBrowser: React.FC<StorageBrowserProps> = ({
     const [uploadProgress, setUploadProgress] = useState<number>(0);
     const [uploadingFile, setUploadingFile] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [createFolderOpen, setCreateFolderOpen] = useState(false);
+    const [newFolderName, setNewFolderName] = useState("");
+    const [creatingFolder, setCreatingFolder] = useState(false);
+    const [createFolderError, setCreateFolderError] = useState<string | null>(null);
+    const [deletingPath, setDeletingPath] = useState<string | null>(null);
 
     const currentPath = pathSegments.join("/");
 
@@ -104,7 +112,7 @@ export const StorageBrowser: React.FC<StorageBrowserProps> = ({
                 isFolder: true
             }));
 
-            const files: StorageBrowserItem[] = await Promise.all(result.items.map(async (item) => {
+            const files: StorageBrowserItem[] = (await Promise.all(result.items.map(async (item) => {
                 try {
                     const metadata = await getMetadata(item);
                     return {
@@ -122,7 +130,7 @@ export const StorageBrowser: React.FC<StorageBrowserProps> = ({
                         isFolder: false
                     };
                 }
-            }));
+            }))).filter((item) => item.name !== FOLDER_PLACEHOLDER);
 
             const sortedItems = [
                 ...folders.sort((a, b) => a.name.localeCompare(b.name)),
@@ -187,15 +195,71 @@ export const StorageBrowser: React.FC<StorageBrowserProps> = ({
         });
     };
 
-    const handleDelete = async (item: StorageBrowserItem) => {
-        if (!window.confirm(`Delete ${item.name}?`)) return;
+    const handleOpenCreateFolder = () => {
+        setNewFolderName("");
+        setCreateFolderError(null);
+        setCreateFolderOpen(true);
+    };
+
+    const handleCreateFolder = async () => {
+        const trimmedName = newFolderName.trim();
+        if (!trimmedName) {
+            setCreateFolderError("Folder name is required.");
+            return;
+        }
+        if (trimmedName.includes("/")) {
+            setCreateFolderError("Folder name cannot contain '/'.");
+            return;
+        }
+        setCreatingFolder(true);
         try {
-            await deleteObject(storageRef(storage, item.fullPath));
+            const sanitized = trimmedName.replace(/(^[\\.]+)|[^a-zA-Z0-9-_]/g, "_");
+            if (!sanitized) {
+                setCreateFolderError("Folder name must include letters, numbers, dashes or underscores.");
+                setCreatingFolder(false);
+                return;
+            }
+            const folderPath = currentPath ? `${currentPath}/${sanitized}` : sanitized;
+            const placeholderRef = storageRef(storage, `${folderPath}/${FOLDER_PLACEHOLDER}`);
+            await uploadBytes(placeholderRef, new Uint8Array());
+            setCreateFolderOpen(false);
+            setNewFolderName("");
+            setCreateFolderError(null);
+            refreshItems();
+        } catch (err: any) {
+            console.error("Failed to create folder", err);
+            setCreateFolderError(err?.message ?? "Failed to create folder");
+        } finally {
+            setCreatingFolder(false);
+        }
+    };
+
+    const handleDelete = async (item: StorageBrowserItem) => {
+        const targetLabel = item.isFolder ? `folder "${item.name}" and all its contents` : `"${item.name}"`;
+        if (!window.confirm(`Delete ${targetLabel}? This action cannot be undone.`)) return;
+        try {
+            setDeletingPath(item.fullPath);
+            if (item.isFolder) {
+                await deleteFolder(item.fullPath);
+            } else {
+                await deleteObject(storageRef(storage, item.fullPath));
+            }
             refreshItems();
         } catch (err: any) {
             console.error("Failed to delete storage item", err);
             alert("Failed to delete: " + (err?.message ?? "Unknown error"));
+        } finally {
+            setDeletingPath(null);
         }
+    };
+
+    const deleteFolder = async (path: string) => {
+        const dirRef = storageRef(storage, path);
+        const result = await listAll(dirRef);
+        await Promise.all([
+            ...result.items.map((itemRef) => deleteObject(itemRef)),
+            ...result.prefixes.map((prefixRef) => deleteFolder(prefixRef.fullPath))
+        ]);
     };
 
     const handleDownload = async (item: StorageBrowserItem) => {
@@ -245,6 +309,8 @@ export const StorageBrowser: React.FC<StorageBrowserProps> = ({
         }))
     ];
 
+    const actionsDisabled = Boolean(uploadingFile) || Boolean(deletingPath);
+
     return (
         <div className="flex flex-col gap-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -270,6 +336,12 @@ export const StorageBrowser: React.FC<StorageBrowserProps> = ({
                         >
                             Select this folder
                         </Button>}
+                    <Button
+                        variant="outlined"
+                        onClick={handleOpenCreateFolder}
+                    >
+                        New folder
+                    </Button>
                     {!hideUpload && <Button
                         color="primary"
                         onClick={handleUploadClick}
@@ -291,6 +363,12 @@ export const StorageBrowser: React.FC<StorageBrowserProps> = ({
             {uploadingFile && (
                 <Alert color="info">
                     Uploading {uploadingFile}… {uploadProgress.toFixed(0)}%
+                </Alert>
+            )}
+
+            {deletingPath && (
+                <Alert color="warning">
+                    Deleting {deletingPath}…
                 </Alert>
             )}
 
@@ -358,6 +436,7 @@ export const StorageBrowser: React.FC<StorageBrowserProps> = ({
                                                         size="small"
                                                         variant="text"
                                                         onClick={() => handleDownload(item)}
+                                                        disabled={actionsDisabled}
                                                     >
                                                         Download
                                                     </Button>
@@ -366,6 +445,7 @@ export const StorageBrowser: React.FC<StorageBrowserProps> = ({
                                                             size="small"
                                                             variant="text"
                                                             onClick={() => handlePreview(item)}
+                                                            disabled={actionsDisabled}
                                                         >
                                                             Preview
                                                         </Button>}
@@ -376,17 +456,21 @@ export const StorageBrowser: React.FC<StorageBrowserProps> = ({
                                                     size="small"
                                                     color="primary"
                                                     onClick={() => handleSelectFile(item)}
+                                                    disabled={actionsDisabled}
                                                 >
                                                     Select
                                                 </Button>
                                             )}
-                                            {!hideDelete && !item.isFolder && (
-                                                <IconButton
+                                            {!hideDelete && (
+                                                <Button
                                                     size="small"
+                                                    variant="text"
+                                                    color="error"
                                                     onClick={() => handleDelete(item)}
+                                                    disabled={actionsDisabled}
                                                 >
-                                                    🗑️
-                                                </IconButton>
+                                                    Delete
+                                                </Button>
                                             )}
                                         </div>
                                     </td>
@@ -396,6 +480,41 @@ export const StorageBrowser: React.FC<StorageBrowserProps> = ({
                     </table>
                 </div>
             </Paper>
+
+            <Dialog
+                open={createFolderOpen}
+            >
+                <DialogTitle>Create folder</DialogTitle>
+                <DialogContent className="flex flex-col gap-3 pt-4">
+                    <TextField
+                        label="Folder name"
+                        value={newFolderName}
+                        onChange={(event) => {
+                            setNewFolderName(event.target.value);
+                            if (createFolderError) setCreateFolderError(null);
+                        }}
+                        placeholder="assets"
+                        disabled={creatingFolder}
+                    />
+                    {createFolderError && <Alert color="error">{createFolderError}</Alert>}
+                </DialogContent>
+                <DialogActions>
+                    <Button
+                        variant="text"
+                        onClick={() => setCreateFolderOpen(false)}
+                        disabled={creatingFolder}
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        color="primary"
+                        onClick={handleCreateFolder}
+                        disabled={creatingFolder}
+                    >
+                        {creatingFolder ? "Creating..." : "Create"}
+                    </Button>
+                </DialogActions>
+            </Dialog>
 
             <Dialog
                 open={previewUrl !== null}
