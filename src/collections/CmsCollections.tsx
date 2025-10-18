@@ -42,6 +42,8 @@ export type CmsPropertyConfig = {
     storage?: CmsStorageConfig;
     defaultValue?: string;
     localized?: boolean;
+    multiline?: boolean;
+    markdown?: boolean;
 };
 
 export type CmsCollectionLocalization = {
@@ -129,14 +131,36 @@ const buildProperty = (config?: CmsPropertyConfig) => {
         base.validation = { required: true };
     }
 
+    const applyStringOptions = (target: Record<string, any>) => {
+        if (config.enumValues && Object.keys(config.enumValues).length > 0) {
+            target.enumValues = config.enumValues;
+        }
+        if (config.storage?.storagePath) {
+            target.storage = {
+                storagePath: config.storage.storagePath,
+                acceptedFiles: config.storage.acceptedFiles,
+                maxSize: config.storage.maxSize
+            };
+        }
+        if (config.multiline) {
+            target.multiline = true;
+        }
+        if (config.markdown) {
+            target.markdown = true;
+        }
+    };
+
     if (config.localized && config.dataType === "string") {
         return {
             dataType: "map",
+            expanded: true,
             properties: SUPPORTED_LOCALES.reduce((acc, locale) => {
-                acc[locale.code] = {
+                const child: Record<string, any> = {
                     name: locale.label,
                     dataType: "string"
                 };
+                applyStringOptions(child);
+                acc[locale.code] = child;
                 return acc;
             }, {} as Record<string, any>)
         };
@@ -150,16 +174,7 @@ const buildProperty = (config?: CmsPropertyConfig) => {
             base.mode = "date_time";
             break;
         case "string":
-            if (config.enumValues && Object.keys(config.enumValues).length > 0) {
-                base.enumValues = config.enumValues;
-            }
-            if (config.storage?.storagePath) {
-                base.storage = {
-                    storagePath: config.storage.storagePath,
-                    acceptedFiles: config.storage.acceptedFiles,
-                    maxSize: config.storage.maxSize
-                };
-            }
+            applyStringOptions(base);
             break;
         case "reference":
             if (!isNonEmptyString(config.path)) {

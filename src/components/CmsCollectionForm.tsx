@@ -80,6 +80,8 @@ type PropertyFormState = {
     storageMaxSize: string;
     defaultValue: string;
     localized: boolean;
+    multiline: boolean;
+    markdown: boolean;
 };
 
 type FormState = {
@@ -137,7 +139,9 @@ const createEmptyProperty = (): PropertyFormState => ({
     storageAcceptedFiles: "",
     storageMaxSize: "",
     defaultValue: "",
-    localized: false
+    localized: false,
+    multiline: false,
+    markdown: false
 });
 
 const createEmptyFormState = (): FormState => ({
@@ -205,7 +209,9 @@ const cmsPropertyToFormState = (propertyConfig?: CmsPropertyConfig): PropertyFor
             ? (propertyConfig.storage.maxSize / (1024 * 1024)).toString()
             : "",
         defaultValue: propertyConfig.defaultValue?.trim() ?? "",
-        localized: propertyConfig.localized === true
+        localized: propertyConfig.localized === true,
+        multiline: propertyConfig.multiline === true,
+        markdown: propertyConfig.markdown === true
     };
 
     if (dataType === "array") {
@@ -224,6 +230,9 @@ const cmsPropertyToFormState = (propertyConfig?: CmsPropertyConfig): PropertyFor
         property.storageAcceptedFiles = "";
         property.storageMaxSize = "";
         property.defaultValue = "";
+        property.localized = false;
+        property.multiline = false;
+        property.markdown = false;
     }
 
     return property;
@@ -287,7 +296,9 @@ const sanitizeFormState = (state: FormState): FormState => ({
             .filter(Boolean)
             .join(", "),
         storageMaxSize: property.storageMaxSize.trim(),
-        defaultValue: property.defaultValue.trim()
+        defaultValue: property.defaultValue.trim(),
+        multiline: property.multiline,
+        markdown: property.markdown
     })),
     localizations: Object.entries(state.localizations).reduce((acc, [locale, values]) => {
         acc[locale] = {
@@ -358,6 +369,10 @@ const buildPropertyPayload = (property: PropertyFormState) => {
     if (baseProperty.dataType === "string") {
         const enumValues = listToEnumValues(baseProperty.enumValues);
         if (enumValues) base.enumValues = enumValues;
+        if (!baseProperty.localized) {
+            if (baseProperty.multiline) base.multiline = true;
+            if (baseProperty.markdown) base.markdown = true;
+        }
     }
 
     if (baseProperty.dataType === "reference") {
@@ -400,6 +415,11 @@ const buildPropertyPayload = (property: PropertyFormState) => {
 
     if (baseProperty.localized) {
         base.localized = true;
+        if (baseProperty.multiline) base.multiline = true;
+        if (baseProperty.markdown) base.markdown = true;
+    } else {
+        if (baseProperty.multiline) base.multiline = true;
+        if (baseProperty.markdown) base.markdown = true;
     }
 
     return base;
@@ -575,12 +595,18 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                     updated.defaultValue = "";
                 }
 
-                if (key === "localized" && value === true) {
-                    updated.storageEnabled = false;
-                    updated.storagePath = "";
-                    updated.storageAcceptedFiles = "";
-                    updated.storageMaxSize = "";
-                    updated.defaultValue = "";
+                if (key === "localized") {
+                    if (value) {
+                        updated.storageEnabled = false;
+                        updated.storagePath = "";
+                        updated.storageAcceptedFiles = "";
+                        updated.storageMaxSize = "";
+                        updated.defaultValue = "";
+                    }
+                }
+
+                if (key === "markdown" && value === true) {
+                    updated.multiline = true;
                 }
 
                 return updated;
@@ -1130,6 +1156,30 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                                     )}
 
                                     {property.dataType === "string" && (
+                                        <div className="flex flex-wrap items-center gap-4 text-sm text-text-secondary dark:text-text-secondary-dark">
+                                            <span className="font-medium">Display options</span>
+                                            <label className="flex items-center gap-2">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={property.multiline}
+                                                    onChange={(event) => handlePropertyChange(index, "multiline", event.target.checked)}
+                                                    disabled={formBusy}
+                                                />
+                                                <span>Multiline input</span>
+                                            </label>
+                                            <label className="flex items-center gap-2">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={property.markdown}
+                                                    onChange={(event) => handlePropertyChange(index, "markdown", event.target.checked)}
+                                                    disabled={formBusy}
+                                                />
+                                                <span>Markdown editor</span>
+                                            </label>
+                                        </div>
+                                    )}
+
+                                    {property.dataType === "string" && (
                                         <div className="flex items-center gap-2">
                                             <input
                                                 id={`localized-${index}`}
@@ -1141,6 +1191,9 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                                             <label htmlFor={`localized-${index}`} className="text-sm text-text-secondary dark:text-text-secondary-dark">
                                                 Localize this field (per locale string values)
                                             </label>
+                                            <span className="text-xs text-text-secondary dark:text-text-secondary-dark">
+                                                Markdown and multiline available per locale
+                                            </span>
                                         </div>
                                     )}
 
