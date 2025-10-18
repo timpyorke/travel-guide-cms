@@ -34,8 +34,22 @@ import { CmsCollectionsManager } from "./components/CmsCollectionsManager";
 import { Link, Route, useParams } from "react-router-dom";
 import { useEffect } from "react";
 import { useSnackbarController } from "@firecms/core";
+import { SnackbarProvider as NotistackSnackbarProvider } from "notistack";
 
-function App() {
+const CustomSnackbarProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+    <NotistackSnackbarProvider
+        maxSnack={3}
+        autoHideDuration={3500}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        classes={{
+            containerAnchorOriginTopRight: "notistack-anchor-top-right"
+        }}
+    >
+        {children}
+    </NotistackSnackbarProvider>
+);
+
+function AppContent() {
 
     // Use your own authentication logic here
     const myAuthenticator: Authenticator<FirebaseUserWrapper> = useCallback(async ({
@@ -222,5 +236,14 @@ const CmsCollectionsErrorToast: React.FC<{ error?: Error }> = ({ error }) => {
     }, [error, snackbar]);
     return null;
 };
+
+
+function App() {
+    return (
+        <CustomSnackbarProvider>
+            <AppContent />
+        </CustomSnackbarProvider>
+    );
+}
 
 export default App;

@@ -18,7 +18,7 @@ a {
     @apply text-primary dark:text-primary
 }
 
-.notistack-SnackbarContainer {
+.notistack-anchor-top-right {
     top: 1.5rem !important;
     bottom: auto !important;
     right: 1.5rem !important;
