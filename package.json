@@ -14,7 +14,8 @@
     "react-router-dom": "^6.26.2"
   },
   "scripts": {
-    "dev": "vite --mode development",
+    "dev": "vite --mode development --port 3000",
+    "dev:alt": "vite --mode development --port 8080",
     "build": "vite build && tsc",
     "preview": "vite build && vite preview",
     "deploy": "vite build && firebase deploy --only hosting --project travel-guide-f6973"
