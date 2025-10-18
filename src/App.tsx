@@ -29,6 +29,7 @@ import {
 import { CenteredView } from "@firecms/ui";
 import { demoCollection } from "./collections/demo";
 import { bannersCollection } from "./collections/banner";
+import { productsCollection } from "./collections/products";
 
 import { firebaseConfig } from "./firebase_config";
 
@@ -56,7 +57,8 @@ function App() {
 
     const collections = useMemo(() => [
         demoCollection,
-        bannersCollection
+        bannersCollection,
+        productsCollection
     ], []);
 
     const {
@@ -147,7 +149,7 @@ function App() {
 
                         return <Scaffold
                             autoOpenDrawer={false}>
-                            <AppBar title={"My demo app"} />
+                            <AppBar title={"Travel Guide CMS"} />
                             <Drawer />
                             <NavigationRoutes />
                             <SideDialogs />

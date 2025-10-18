@@ -1,33 +1,96 @@
-## FireCMS starter template
+# Travel Guide CMS
 
-Welcome to FireCMS!
+Travel Guide CMS is a FireCMS-powered admin panel that manages travel content,
+marketing banners, and product information backed by Firebase. It is configured
+as a single-page React application built with Vite and TypeScript.
 
-Remember to drop a ⭐ in our [Github page](https://github.com/firecmsco/firecms),
-and join our [Discord community](https://discord.gg/fxy7xsQm3m) to get help and
-share your projects.
+## Tech Stack
+- React 18 + TypeScript
+- Vite 7 for development and bundling
+- FireCMS 3 (beta) UI framework
+- Firebase Authentication, Firestore, and Storage
+- TailwindCSS for styling utilities
 
-This is a starter template for your next project. It includes the basic
-configuration to get you started.
+## Prerequisites
+- Node.js 18 or later
+- npm 9+ or Yarn 1.22+
+- Firebase CLI (`npm install -g firebase-tools`) for deployment
+- A Firebase project with Firestore, Storage, and Authentication enabled
 
-In order to run this project, you will need to create a Firebase project,
-create a web app and copy the configuration to the `firebase_config.ts`.
+## Local Setup
+1. Install dependencies (choose one package manager):
+   ```bash
+   npm install
+   # or
+   yarn install
+   ```
+2. Configure Firebase:
+   - Create a Firebase project if you do not have one.
+   - Enable Firestore, Storage, and Authentication (Google and/or Email/Password).
+   - Copy your app credentials into `src/firebase_config.ts`.
+3. Start the development server:
+   ```bash
+   npm run dev
+   # or
+   yarn dev
+   ```
+4. Open the provided local URL and authenticate with an allowed user.
 
-Then simply run:
+## Firebase Configuration
+- `src/firebase_config.ts`: Holds the `firebaseConfig` used by `useInitialiseFirebase`.
+- Authentication providers are configured in `src/App.tsx:51` via `signInOptions`.
+- Ensure Firestore and Storage security rules align with your desired permissions.
+- The `myAuthenticator` callback in `src/App.tsx:22` can be customized to restrict access (e.g., based on custom claims or email domain).
 
-### Running the project
+## Available Scripts
+- `npm run dev` / `yarn dev`: Start the Vite development server.
+- `npm run build` / `yarn build`: Build the production bundle and run TypeScript type checking.
+- `npm run preview` / `yarn preview`: Build and serve the production bundle locally.
+- `npm run deploy` / `yarn deploy`: Build and deploy hosting to Firebase using the configured project.
 
-```bash
-yarn dev
+## Project Structure
+```
+src/
+├── App.tsx                 # FireCMS setup, navigation, and authentication wiring
+├── collections/            # FireCMS collection definitions
+│   ├── banner.tsx          # Banners collection (content group)
+│   ├── products.tsx        # Products collection (e-commerce group)
+│   └── demo.tsx            # Demo collection showcasing FireCMS property types
+├── firebase_config.ts      # Firebase project credentials
+├── main.tsx                # React entry point
+└── index.css               # Global styles (Tailwind entry)
 ```
 
-### Building the project
+## FireCMS Configuration
+- `FireCMS` initialization, navigation, and theming live in `src/App.tsx`.
+- `useBuildNavigationController` binds the registered collections so they appear in the left-hand navigation.
+- `useValidateAuthenticator` validates the Firebase user before granting access to the main CMS view.
+- `ModeControllerProvider` exposes light/dark mode and persists preferences using `useBuildLocalConfigurationPersistence`.
 
-Make sure you update your `package.json` `build` script with the correct
-project name. Then run:
+## Collections
+- **Demo (`src/collections/demo.tsx`)**: Demonstrates FireCMS field types—validation, markdown, maps, references, and `oneOf` content blocks.
+- **Banners (`src/collections/banner.tsx`)**: Minimal collection for marketing banners with validated destination URLs.
+- **Products (`src/collections/products.tsx`)**: Rich product schema including price validation, self-referencing relationships, asset storage, category enums, metadata maps, and conditional logic on the `published` flag.
 
-```bash
-yarn build
-```
+To add a new collection, create a file under `src/collections`, export it via `buildCollection`, and append it to the `collections` array in `src/App.tsx:36`.
 
-> Note: this may not work if you have set up your Firebase hosting with
-> a custom config.
+## Authentication and Authorization
+- Firebase Authentication controls who can sign in. Update `signInOptions` in `src/App.tsx:51` to adjust providers.
+- Implement fine-grained access rules in the `permissions` block of each collection (see `src/collections/products.tsx:28`).
+- Customize the `myAuthenticator` function in `src/App.tsx:22` to enforce domain restrictions or role-based access using Firebase custom claims.
+
+## Deployment
+1. Ensure you are logged in with the Firebase CLI: `firebase login`.
+2. Set the target project in `.firebaserc` or pass `--project <id>`.
+3. Deploy hosting:
+   ```bash
+   npm run deploy
+   # or
+   yarn deploy
+   ```
+   The script builds the app and runs `firebase deploy --only hosting`.
+
+## Useful References
+- [FireCMS Documentation](https://firecms.co/docs)
+- [Firebase Web Setup](https://firebase.google.com/docs/web/setup)
+- [Vite Documentation](https://vitejs.dev/guide/)
