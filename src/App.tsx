@@ -26,12 +26,12 @@ import {
     useFirestoreDelegate,
     useInitialiseFirebase,
 } from "@firecms/firebase";
-import { CenteredView } from "@firecms/ui";
-import { demoCollection } from "./collections/demo";
-import { bannersCollection } from "./collections/banner";
-import { productsCollection } from "./collections/products";
+import { CenteredView, Button } from "@firecms/ui";
+import { useCmsCollections } from "./collections/cmsColecctions";
 
 import { firebaseConfig } from "./firebase_config";
+import { CreateCollectionForm } from "./components/CreateCollectionForm";
+import { Link, Route } from "react-router-dom";
 
 function App() {
 
@@ -54,12 +54,6 @@ function App() {
         // we allow access to every user in this case
         return true;
     }, []);
-
-    const collections = useMemo(() => [
-        demoCollection,
-        bannersCollection,
-        productsCollection
-    ], []);
 
     const {
         firebaseApp,
@@ -104,8 +98,18 @@ function App() {
         storageSource
     });
 
+    const {
+        collections: cmsCollections,
+        loading: cmsCollectionsLoading,
+        error: cmsCollectionsError
+    } = useCmsCollections(firebaseApp);
+
+    const collections = useMemo(() => [
+        ...cmsCollections
+    ], [cmsCollections]);
+
     const navigationController = useBuildNavigationController({
-        disabled: authLoading,
+        disabled: authLoading || cmsCollectionsLoading,
         collections,
         authController,
         dataSourceDelegate: firestoreDelegate
@@ -136,7 +140,7 @@ function App() {
                         loading
                     }) => {
 
-                        if (loading || authLoading) {
+                        if (loading || authLoading || cmsCollectionsLoading) {
                             return <CircularProgressCenter size={"large"} />;
                         }
 
@@ -149,9 +153,26 @@ function App() {
 
                         return <Scaffold
                             autoOpenDrawer={false}>
-                            <AppBar title={"Travel Guide CMS"} />
+                            <AppBar
+                                title={"Travel Guide CMS"}
+                                endAdornment={
+                                    <Button
+                                        size="small"
+                                        color="primary"
+                                        component={Link}
+                                        to={"/collections/new"}
+                                    >
+                                        New collection
+                                    </Button>
+                                }
+                            />
                             <Drawer />
-                            <NavigationRoutes />
+                            <NavigationRoutes>
+                                <Route
+                                    path={"/collections/new"}
+                                    element={<CreateCollectionForm firebaseApp={firebaseApp} />}
+                                />
+                            </NavigationRoutes>
                             <SideDialogs />
                         </Scaffold>;
                     }}
