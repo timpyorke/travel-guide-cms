@@ -10,7 +10,6 @@ import {
     NavigationRoutes,
     Scaffold,
     SideDialogs,
-    SnackbarProvider,
     useBuildLocalConfigurationPersistence,
     useBuildModeController,
     useBuildNavigationController,
@@ -27,11 +26,15 @@ import {
     useInitialiseFirebase,
 } from "@firecms/firebase";
 import { CenteredView, Button } from "@firecms/ui";
+import { demoCollection } from "./collections/demo";
+import { productsCollection } from "./collections/products";
 import { useCmsCollections } from "./collections/cmsColecctions";
 
 import { firebaseConfig } from "./firebase_config";
-import { CreateCollectionForm } from "./components/CreateCollectionForm";
-import { Link, Route } from "react-router-dom";
+import { CmsCollectionForm } from "./components/CmsCollectionForm";
+import { CmsCollectionsManager } from "./components/CmsCollectionsManager";
+import { Link, Route, useParams } from "react-router-dom";
+import { useEffect } from "react";
 
 function App() {
 
@@ -87,6 +90,7 @@ function App() {
         firebaseApp
     });
 
+
     const {
         authLoading,
         canAccessMainView,
@@ -98,6 +102,11 @@ function App() {
         storageSource
     });
 
+    const staticCollections = useMemo(() => [
+        demoCollection,
+        productsCollection
+    ], []);
+
     const {
         collections: cmsCollections,
         loading: cmsCollectionsLoading,
@@ -105,8 +114,9 @@ function App() {
     } = useCmsCollections(firebaseApp);
 
     const collections = useMemo(() => [
+        ...staticCollections,
         ...cmsCollections
-    ], [cmsCollections]);
+    ], [cmsCollections, staticCollections]);
 
     const navigationController = useBuildNavigationController({
         disabled: authLoading || cmsCollectionsLoading,
@@ -114,6 +124,8 @@ function App() {
         authController,
         dataSourceDelegate: firestoreDelegate
     });
+
+    useEffect(() => { }, [cmsCollectionsError]);
 
     if (firebaseConfigLoading || !firebaseApp) {
         return <>
@@ -125,60 +137,84 @@ function App() {
         return <CenteredView>{configError}</CenteredView>;
     }
 
+    const CmsCollectionEditView = () => {
+        const { collectionId } = useParams<{ collectionId: string }>();
+        return <CmsCollectionForm
+            firebaseApp={firebaseApp}
+            collectionId={collectionId ?? undefined}
+        />;
+    };
+
     return (
-        <SnackbarProvider>
-            <ModeControllerProvider value={modeController}>
-                <FireCMS
-                    navigationController={navigationController}
-                    authController={authController}
-                    userConfigPersistence={userConfigPersistence}
-                    dataSourceDelegate={firestoreDelegate}
-                    storageSource={storageSource}
-                >
-                    {({
-                        context,
-                        loading
-                    }) => {
+        <ModeControllerProvider value={modeController}>
+            <FireCMS
+                navigationController={navigationController}
+                authController={authController}
+                userConfigPersistence={userConfigPersistence}
+                dataSourceDelegate={firestoreDelegate}
+                storageSource={storageSource}
+            >
+                {({
+                    context,
+                    loading
+                }) => {
 
-                        if (loading || authLoading || cmsCollectionsLoading) {
-                            return <CircularProgressCenter size={"large"} />;
-                        }
+                    if (loading || authLoading || cmsCollectionsLoading) {
+                        return <CircularProgressCenter size={"large"} />;
+                    }
 
-                        if (!canAccessMainView) {
-                            return <FirebaseLoginView authController={authController}
-                                firebaseApp={firebaseApp}
-                                signInOptions={signInOptions}
-                                notAllowedError={notAllowedError} />;
-                        }
+                    if (!canAccessMainView) {
+                        return <FirebaseLoginView authController={authController}
+                            firebaseApp={firebaseApp}
+                            signInOptions={signInOptions}
+                            notAllowedError={notAllowedError} />;
+                    }
 
-                        return <Scaffold
-                            autoOpenDrawer={false}>
-                            <AppBar
-                                title={"Travel Guide CMS"}
-                                endAdornment={
+                    return <Scaffold
+                        autoOpenDrawer={false}>
+                        <AppBar
+                            title={"Travel Guide CMS"}
+                            endAdornment={
+                                <div className="flex gap-2">
+                                    <Button
+                                        size="small"
+                                        variant="outlined"
+                                        component={Link}
+                                        to={"/cms/collections"}
+                                    >
+                                        Manage collections
+                                    </Button>
                                     <Button
                                         size="small"
                                         color="primary"
                                         component={Link}
-                                        to={"/collections/new"}
+                                        to={"/cms/collections/new"}
                                     >
                                         New collection
                                     </Button>
-                                }
+                                </div>
+                            }
+                        />
+                        <Drawer />
+                        <NavigationRoutes>
+                            <Route
+                                path={"/cms/collections"}
+                                element={<CmsCollectionsManager firebaseApp={firebaseApp} />}
                             />
-                            <Drawer />
-                            <NavigationRoutes>
-                                <Route
-                                    path={"/collections/new"}
-                                    element={<CreateCollectionForm firebaseApp={firebaseApp} />}
-                                />
-                            </NavigationRoutes>
-                            <SideDialogs />
-                        </Scaffold>;
-                    }}
-                </FireCMS>
-            </ModeControllerProvider>
-        </SnackbarProvider>
+                            <Route
+                                path={"/cms/collections/new"}
+                                element={<CmsCollectionForm firebaseApp={firebaseApp} />}
+                            />
+                            <Route
+                                path={"/cms/collections/:collectionId/edit"}
+                                element={<CmsCollectionEditView />}
+                            />
+                        </NavigationRoutes>
+                        <SideDialogs />
+                    </Scaffold>;
+                }}
+            </FireCMS>
+        </ModeControllerProvider>
     );
 
 }

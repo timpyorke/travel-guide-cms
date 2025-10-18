@@ -9,20 +9,20 @@ import {
 } from "firebase/firestore";
 import { EntityCollection } from "@firecms/core";
 
-type CmsCollectionPermissions = {
+export type CmsCollectionPermissions = {
     read?: boolean;
     create?: boolean;
     edit?: boolean;
     delete?: boolean;
 };
 
-type CmsArrayPropertyConfig = {
+export type CmsArrayPropertyConfig = {
     dataType?: string;
     enumValues?: Record<string, string>;
     path?: string;
 };
 
-type CmsPropertyConfig = {
+export type CmsPropertyConfig = {
     key?: string;
     name?: string;
     description?: string;
@@ -33,7 +33,7 @@ type CmsPropertyConfig = {
     of?: CmsArrayPropertyConfig;
 };
 
-type CmsCollectionConfig = {
+export type CmsCollectionConfig = {
     id?: string;
     name?: string;
     singularName?: string;
@@ -45,7 +45,7 @@ type CmsCollectionConfig = {
     properties?: CmsPropertyConfig[];
 };
 
-const DEFAULT_PERMISSIONS = {
+export const DEFAULT_CMS_COLLECTION_PERMISSIONS = {
     read: true,
     create: true,
     edit: true,
@@ -56,10 +56,10 @@ const isNonEmptyString = (value: unknown): value is string =>
     typeof value === "string" && value.trim().length > 0;
 
 const normalizePermissions = (permissions?: CmsCollectionPermissions) => ({
-    read: permissions?.read ?? DEFAULT_PERMISSIONS.read,
-    create: permissions?.create ?? DEFAULT_PERMISSIONS.create,
-    edit: permissions?.edit ?? DEFAULT_PERMISSIONS.edit,
-    delete: permissions?.delete ?? DEFAULT_PERMISSIONS.delete
+    read: permissions?.read ?? DEFAULT_CMS_COLLECTION_PERMISSIONS.read,
+    create: permissions?.create ?? DEFAULT_CMS_COLLECTION_PERMISSIONS.create,
+    edit: permissions?.edit ?? DEFAULT_CMS_COLLECTION_PERMISSIONS.edit,
+    delete: permissions?.delete ?? DEFAULT_CMS_COLLECTION_PERMISSIONS.delete
 });
 
 const buildArrayProperty = (config?: CmsArrayPropertyConfig) => {
@@ -219,4 +219,3 @@ export const useCmsCollections = (firebaseApp: FirebaseApp | undefined | null): 
         error
     }), [collections, error, loading]);
 };
-
