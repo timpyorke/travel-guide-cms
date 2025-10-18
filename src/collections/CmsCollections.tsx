@@ -8,7 +8,7 @@ import {
     QueryDocumentSnapshot
 } from "firebase/firestore";
 import { EntityCollection } from "@firecms/core";
-import { DEFAULT_LOCALE } from "../localization";
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from "../localization";
 
 export type CmsCollectionPermissions = {
     read?: boolean;
@@ -41,11 +41,11 @@ export type CmsPropertyConfig = {
     of?: CmsArrayPropertyConfig;
     storage?: CmsStorageConfig;
     defaultValue?: string;
+    localized?: boolean;
 };
 
 export type CmsCollectionLocalization = {
     name?: string;
-    singularName?: string;
     description?: string;
     group?: string;
 };
@@ -53,7 +53,6 @@ export type CmsCollectionLocalization = {
 export type CmsCollectionConfig = {
     id?: string;
     name?: string;
-    singularName?: string;
     description?: string;
     path?: string;
     group?: string;
@@ -128,6 +127,19 @@ const buildProperty = (config?: CmsPropertyConfig) => {
 
     if (config.required) {
         base.validation = { required: true };
+    }
+
+    if (config.localized && config.dataType === "string") {
+        return {
+            dataType: "map",
+            properties: SUPPORTED_LOCALES.reduce((acc, locale) => {
+                acc[locale.code] = {
+                    name: locale.label,
+                    dataType: "string"
+                };
+                return acc;
+            }, {} as Record<string, any>)
+        };
     }
 
     switch (config.dataType) {
@@ -209,7 +221,6 @@ const snapshotToEntityCollection = (snapshot: QueryDocumentSnapshot<DocumentData
         id: data.id.trim(),
         path: data.path.trim(),
         name: getLocalizedValue(data.name, localization?.name) ?? "",
-        singularName: getLocalizedValue(data.singularName, localization?.singularName),
         description: getLocalizedValue(data.description, localization?.description),
         group: getLocalizedValue(data.group, localization?.group),
         icon: data.icon,

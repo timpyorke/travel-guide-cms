@@ -79,12 +79,12 @@ type PropertyFormState = {
     storageAcceptedFiles: string;
     storageMaxSize: string;
     defaultValue: string;
+    localized: boolean;
 };
 
 type FormState = {
     collectionId: string;
     name: string;
-    singularName: string;
     path: string;
     group: string;
     icon: string;
@@ -103,14 +103,12 @@ type StoragePickerState = {
 
 type LocalizationFormState = {
     name: string;
-    singularName: string;
     description: string;
     group: string;
 };
 
 const emptyLocalization = (): LocalizationFormState => ({
     name: "",
-    singularName: "",
     description: "",
     group: ""
 });
@@ -138,13 +136,13 @@ const createEmptyProperty = (): PropertyFormState => ({
     storagePath: "",
     storageAcceptedFiles: "",
     storageMaxSize: "",
-    defaultValue: ""
+    defaultValue: "",
+    localized: false
 });
 
 const createEmptyFormState = (): FormState => ({
     collectionId: "",
     name: "",
-    singularName: "",
     path: "",
     group: "",
     icon: "",
@@ -206,7 +204,8 @@ const cmsPropertyToFormState = (propertyConfig?: CmsPropertyConfig): PropertyFor
         storageMaxSize: propertyConfig.storage?.maxSize
             ? (propertyConfig.storage.maxSize / (1024 * 1024)).toString()
             : "",
-        defaultValue: propertyConfig.defaultValue?.trim() ?? ""
+        defaultValue: propertyConfig.defaultValue?.trim() ?? "",
+        localized: propertyConfig.localized === true
     };
 
     if (dataType === "array") {
@@ -233,7 +232,6 @@ const cmsPropertyToFormState = (propertyConfig?: CmsPropertyConfig): PropertyFor
 const cmsConfigToFormState = (config: CmsCollectionConfig): FormState => ({
     collectionId: config.id?.trim() ?? "",
     name: config.name?.trim() ?? "",
-    singularName: config.singularName?.trim() ?? "",
     path: config.path?.trim() ?? "",
     group: config.group?.trim() ?? "",
     icon: config.icon?.toString().trim() ?? "",
@@ -252,13 +250,11 @@ const cmsConfigToFormState = (config: CmsCollectionConfig): FormState => ({
         SUPPORTED_LOCALES.forEach(({ code }) => {
             const localized = config.localizations?.[code];
             if (localized?.name) localizationState[code].name = localized.name;
-            if (localized?.singularName) localizationState[code].singularName = localized.singularName;
             if (localized?.description) localizationState[code].description = localized.description;
             if (localized?.group) localizationState[code].group = localized.group;
         });
         localizationState[DEFAULT_LOCALE] = {
             name: config.name?.trim() ?? localizationState[DEFAULT_LOCALE].name,
-            singularName: config.singularName?.trim() ?? localizationState[DEFAULT_LOCALE].singularName,
             description: config.description?.trim() ?? localizationState[DEFAULT_LOCALE].description,
             group: config.group?.trim() ?? localizationState[DEFAULT_LOCALE].group
         };
@@ -270,7 +266,6 @@ const sanitizeFormState = (state: FormState): FormState => ({
     ...state,
     collectionId: state.collectionId.trim(),
     name: state.name.trim(),
-    singularName: state.singularName.trim(),
     path: state.path.trim(),
     group: state.group.trim(),
     icon: state.icon.trim(),
@@ -297,7 +292,6 @@ const sanitizeFormState = (state: FormState): FormState => ({
     localizations: Object.entries(state.localizations).reduce((acc, [locale, values]) => {
         acc[locale] = {
             name: values.name.trim(),
-            singularName: values.singularName.trim(),
             description: values.description.trim(),
             group: values.group.trim()
         };
@@ -402,6 +396,10 @@ const buildPropertyPayload = (property: PropertyFormState) => {
 
     if (baseProperty.defaultValue) {
         base.defaultValue = baseProperty.defaultValue;
+    }
+
+    if (baseProperty.localized) {
+        base.localized = true;
     }
 
     return base;
@@ -523,7 +521,6 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
             };
             if (localeCode === DEFAULT_LOCALE) {
                 if (field === "name") updatedState.name = value;
-                if (field === "singularName") updatedState.singularName = value;
                 if (field === "description") updatedState.description = value;
                 if (field === "group") updatedState.group = value;
             }
@@ -558,6 +555,7 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                         updated.storageAcceptedFiles = "";
                         updated.storageMaxSize = "";
                         updated.defaultValue = "";
+                        updated.localized = false;
                     }
                 }
 
@@ -571,6 +569,14 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                 }
 
                 if (key === "storageEnabled" && value === false) {
+                    updated.storagePath = "";
+                    updated.storageAcceptedFiles = "";
+                    updated.storageMaxSize = "";
+                    updated.defaultValue = "";
+                }
+
+                if (key === "localized" && value === true) {
+                    updated.storageEnabled = false;
                     updated.storagePath = "";
                     updated.storageAcceptedFiles = "";
                     updated.storageMaxSize = "";
@@ -670,7 +676,6 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
             const payload = {
                 id: sanitizedState.collectionId,
                 name: sanitizedState.name,
-                singularName: sanitizedState.singularName || undefined,
                 description: sanitizedState.description || undefined,
                 path: sanitizedState.path,
                 group: sanitizedState.group || undefined,
@@ -683,7 +688,6 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                 if (locale === DEFAULT_LOCALE) return acc;
                 const entries: Record<string, string> = {};
                 if (values.name) entries.name = values.name;
-                if (values.singularName) entries.singularName = values.singularName;
                 if (values.description) entries.description = values.description;
                 if (values.group) entries.group = values.group;
                 if (Object.keys(entries).length > 0) {
@@ -803,27 +807,6 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                             disabled={formBusy}
                         />
                         <TextField
-                            label="Singular name (optional)"
-                            value={formState.singularName}
-                            onChange={(event) => setFormState((current) => {
-                                const value = event.target.value;
-                                const defaultLocalization = current.localizations[DEFAULT_LOCALE] ?? emptyLocalization();
-                                return {
-                                    ...current,
-                                    singularName: value,
-                                    localizations: {
-                                        ...current.localizations,
-                                        [DEFAULT_LOCALE]: {
-                                            ...defaultLocalization,
-                                            singularName: value
-                                        }
-                                    }
-                                };
-                            })}
-                            placeholder="Location"
-                            disabled={formBusy}
-                        />
-                        <TextField
                             label="Firestore path"
                             value={formState.path}
                             onChange={(event) => setFormState((current) => ({
@@ -918,13 +901,6 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                                                 value={localization.name}
                                                 onChange={(event) => handleLocalizationChange(locale.code, "name", event.target.value)}
                                                 placeholder="Localized name"
-                                                disabled={formBusy}
-                                            />
-                                            <TextField
-                                                label="Singular name"
-                                                value={localization.singularName}
-                                                onChange={(event) => handleLocalizationChange(locale.code, "singularName", event.target.value)}
-                                                placeholder="Localized singular"
                                                 disabled={formBusy}
                                             />
                                             <TextField
@@ -1150,6 +1126,21 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                                                     </div>
                                                 </div>
                                             )}
+                                        </div>
+                                    )}
+
+                                    {property.dataType === "string" && (
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                id={`localized-${index}`}
+                                                type="checkbox"
+                                                checked={property.localized}
+                                                onChange={(event) => handlePropertyChange(index, "localized", event.target.checked)}
+                                                disabled={formBusy}
+                                            />
+                                            <label htmlFor={`localized-${index}`} className="text-sm text-text-secondary dark:text-text-secondary-dark">
+                                                Localize this field (per locale string values)
+                                            </label>
                                         </div>
                                     )}
 
