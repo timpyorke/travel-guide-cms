@@ -1,0 +1,17 @@
+{
+    "hosting": {
+        "public": "build",
+        "site": "travel-guide-f6973",
+        "ignore": [
+            "firebase.json",
+            "**/.*",
+            "**/node_modules/**"
+        ],
+        "rewrites": [
+            {
+                "source": "**",
+                "destination": "/index.html"
+            }
+        ]
+    }
+}
