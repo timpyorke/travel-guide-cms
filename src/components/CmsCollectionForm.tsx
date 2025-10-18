@@ -17,6 +17,16 @@ import {
 } from "@firecms/ui";
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from "../localization";
 
+import { useSnackbarController } from "@firecms/core";
+import { StorageBrowserDialog } from "./storage/StorageBrowser";
+import type {
+    CmsCollectionConfig,
+    CmsCollectionPermissions,
+    CmsPropertyConfig
+} from "../collections/CmsCollections";
+import { DEFAULT_CMS_COLLECTION_PERMISSIONS } from "../collections/CmsCollections";
+
+
 const ICON_OPTIONS = [
     "place",
     "map",
@@ -34,15 +44,6 @@ const ICON_OPTIONS = [
     "local_activity"
 ] as const;
 
-import { useSnackbarController } from "@firecms/core";
-import { StorageBrowserDialog } from "./storage/StorageBrowser";
-import type {
-    CmsCollectionConfig,
-    CmsCollectionPermissions,
-    CmsPropertyConfig
-} from "../collections/CmsCollections";
-import { DEFAULT_CMS_COLLECTION_PERMISSIONS } from "../collections/CmsCollections";
-
 type ScalarDataType =
     "string"
     | "number"
@@ -53,6 +54,8 @@ type ScalarDataType =
 type PropertyDataType = ScalarDataType | "reference" | "array";
 
 type ArrayInnerType = "string" | "reference";
+
+type AutoValueOption = "on_create" | "on_update" | "on_create_update" | undefined;
 
 type PermissionState = Required<CmsCollectionPermissions>;
 
@@ -82,6 +85,7 @@ type PropertyFormState = {
     localized: boolean;
     multiline: boolean;
     markdown: boolean;
+    autoValue: AutoValueOption;
 };
 
 type FormState = {
@@ -141,7 +145,8 @@ const createEmptyProperty = (): PropertyFormState => ({
     defaultValue: "",
     localized: false,
     multiline: false,
-    markdown: false
+    markdown: false,
+    autoValue: undefined
 });
 
 const createEmptyFormState = (): FormState => ({
@@ -211,7 +216,8 @@ const cmsPropertyToFormState = (propertyConfig?: CmsPropertyConfig): PropertyFor
         defaultValue: propertyConfig.defaultValue?.trim() ?? "",
         localized: propertyConfig.localized === true,
         multiline: propertyConfig.multiline === true,
-        markdown: propertyConfig.markdown === true
+        markdown: propertyConfig.markdown === true,
+        autoValue: (propertyConfig.autoValue as AutoValueOption)
     };
 
     if (dataType === "array") {
@@ -233,6 +239,10 @@ const cmsPropertyToFormState = (propertyConfig?: CmsPropertyConfig): PropertyFor
         property.localized = false;
         property.multiline = false;
         property.markdown = false;
+    }
+
+    if (dataType !== "date") {
+        property.autoValue = undefined;
     }
 
     return property;
@@ -407,6 +417,12 @@ const buildPropertyPayload = (property: PropertyFormState) => {
             acceptedFiles,
             maxSize: maxSizeBytes && !Number.isNaN(maxSizeBytes) ? maxSizeBytes : undefined
         };
+    }
+
+    if (baseProperty.dataType === "date") {
+        if (baseProperty.autoValue) {
+            base.autoValue = baseProperty.autoValue;
+        }
     }
 
     if (baseProperty.defaultValue) {
@@ -1176,24 +1192,15 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                                                 />
                                                 <span>Markdown editor</span>
                                             </label>
-                                        </div>
-                                    )}
-
-                                    {property.dataType === "string" && (
-                                        <div className="flex items-center gap-2">
-                                            <input
-                                                id={`localized-${index}`}
-                                                type="checkbox"
-                                                checked={property.localized}
-                                                onChange={(event) => handlePropertyChange(index, "localized", event.target.checked)}
-                                                disabled={formBusy}
-                                            />
-                                            <label htmlFor={`localized-${index}`} className="text-sm text-text-secondary dark:text-text-secondary-dark">
-                                                Localize this field (per locale string values)
+                                            <label className="flex items-center gap-2">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={property.localized}
+                                                    onChange={(event) => handlePropertyChange(index, "localized", event.target.checked)}
+                                                    disabled={formBusy}
+                                                />
+                                                <span>Localized content</span>
                                             </label>
-                                            <span className="text-xs text-text-secondary dark:text-text-secondary-dark">
-                                                Markdown and multiline available per locale
-                                            </span>
                                         </div>
                                     )}
 
@@ -1211,6 +1218,55 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                                             placeholder="Add one value per line"
                                             disabled={formBusy}
                                         />
+                                    )}
+
+                                    {property.dataType === "date" && (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            <label className="flex items-center gap-2 text-sm text-text-secondary dark:text-text-secondary-dark">
+                                                <input
+                                                    type="radio"
+                                                    name={`autoValue-${index}`}
+                                                    value="manual"
+                                                    checked={!property.autoValue}
+                                                    onChange={() => handlePropertyChange(index, "autoValue", undefined)}
+                                                    disabled={formBusy}
+                                                />
+                                                Manual entry (default)
+                                            </label>
+                                            <label className="flex items-center gap-2 text-sm text-text-secondary dark:text-text-secondary-dark">
+                                                <input
+                                                    type="radio"
+                                                    name={`autoValue-${index}`}
+                                                    value="on_create"
+                                                    checked={property.autoValue === "on_create"}
+                                                    onChange={() => handlePropertyChange(index, "autoValue", "on_create")}
+                                                    disabled={formBusy}
+                                                />
+                                                Auto set on creation
+                                            </label>
+                                            <label className="flex items-center gap-2 text-sm text-text-secondary dark:text-text-secondary-dark">
+                                                <input
+                                                    type="radio"
+                                                    name={`autoValue-${index}`}
+                                                    value="on_update"
+                                                    checked={property.autoValue === "on_update"}
+                                                    onChange={() => handlePropertyChange(index, "autoValue", "on_update")}
+                                                    disabled={formBusy}
+                                                />
+                                                Auto set on update
+                                            </label>
+                                            <label className="flex items-center gap-2 text-sm text-text-secondary dark:text-text-secondary-dark">
+                                                <input
+                                                    type="radio"
+                                                    name={`autoValue-${index}`}
+                                                    value="on_create_update"
+                                                    checked={property.autoValue === "on_create_update"}
+                                                    onChange={() => handlePropertyChange(index, "autoValue", "on_create_update")}
+                                                    disabled={formBusy}
+                                                />
+                                                Auto set on create & update
+                                            </label>
+                                        </div>
                                     )}
 
                                     {property.dataType === "reference" && (

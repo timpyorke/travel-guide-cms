@@ -44,6 +44,7 @@ export type CmsPropertyConfig = {
     localized?: boolean;
     multiline?: boolean;
     markdown?: boolean;
+    autoValue?: "on_create" | "on_update" | "on_create_update";
 };
 
 export type CmsCollectionLocalization = {
@@ -169,6 +170,7 @@ const buildProperty = (config?: CmsPropertyConfig) => {
     switch (config.dataType) {
         case "date":
             base.mode = "date";
+            if (config.autoValue) base.autoValue = config.autoValue;
             break;
         case "date_time":
             base.mode = "date_time";
