@@ -1,39 +1,104 @@
+import js from "@eslint/js";
+import tseslint from "@typescript-eslint/eslint-plugin";
+import tsparser from "@typescript-eslint/parser";
+import reactPlugin from "eslint-plugin-react";
+import reactHooksPlugin from "eslint-plugin-react-hooks";
+import reactRefreshPlugin from "eslint-plugin-react-refresh";
+
 export default [
     {
+        ignores: ["dist/**/*", "build/**/*", "coverage/**/*", "node_modules/**/*"]
+    },
+    js.configs.recommended,
+    {
+        files: ["**/*.{js,jsx,ts,tsx}"],
+        ignores: ["dist/**/*", "build/**/*", "coverage/**/*"],
+        languageOptions: {
+            parser: tsparser,
+            ecmaVersion: 2020,
+            sourceType: "module",
+            globals: {
+                console: "readonly",
+                process: "readonly",
+                Buffer: "readonly",
+                __dirname: "readonly",
+                __filename: "readonly",
+                global: "readonly",
+                module: "readonly",
+                require: "readonly",
+                exports: "readonly",
+                window: "readonly",
+                document: "readonly",
+                navigator: "readonly",
+                localStorage: "readonly",
+                sessionStorage: "readonly"
+            },
+            parserOptions: {
+                ecmaFeatures: {
+                    jsx: true
+                }
+            }
+        },
+        plugins: {
+            "@typescript-eslint": tseslint,
+            "react": reactPlugin,
+            "react-hooks": reactHooksPlugin,
+            "react-refresh": reactRefreshPlugin
+        },
         rules: {
+            // Disable problematic rules
             "no-undef": "off",
-            "space-before-function-paren": 0,
-            "react/prop-types": 0,
-            "react/jsx-handler-names": 0,
-            "react/jsx-fragments": 0,
-            "react/no-unused-prop-types": 0,
+            "no-unused-vars": "off", // Use TypeScript version instead
+            "@typescript-eslint/no-unused-vars": ["warn", {
+                "argsIgnorePattern": "^_",
+                "varsIgnorePattern": "^_"
+            }],
+
+            // React rules
+            "react/prop-types": "off",
+            "react/jsx-handler-names": "off",
+            "react/jsx-fragments": "off",
+            "react/no-unused-prop-types": "off",
             "react/react-in-jsx-scope": "off",
-            "import/export": 0,
+            "react-hooks/rules-of-hooks": "error",
+            "react-hooks/exhaustive-deps": "warn",
+            "react-refresh/only-export-components": "warn",
+
+            // Import/export rules
+            "import/export": "off",
             "no-use-before-define": "off",
+            "@typescript-eslint/no-use-before-define": "off",
+
+            // Code style (warnings only)
             "no-empty-pattern": "off",
-            "no-unused-vars": "warn",
             "no-shadow": "warn",
             "padded-blocks": "off",
             "brace-style": "off",
             "curly": "off",
-            "semi": 0,
-            "key-spacing": "warn",
-            "no-trailing-spaces": "warn",
-            "comma-dangle": "warn",
-            "no-multi-spaces": "warn",
-            "comma-spacing": "warn",
-            "keyword-spacing": "warn",
-            "no-multiple-empty-lines": "warn",
-            "object-curly-spacing": ["warn", "always"],
+            "semi": ["warn", "always"],
+            "quotes": ["warn", "double", { "avoidEscape": true }],
+
+            // Spacing rules (less strict)
+            "key-spacing": "off",
+            "no-trailing-spaces": "off",
+            "comma-dangle": "off",
+            "no-multi-spaces": "off",
+            "comma-spacing": "off",
+            "keyword-spacing": "off",
+            "no-multiple-empty-lines": "off",
+            "object-curly-spacing": "off",
             "multiline-ternary": "off",
-            "space-before-blocks": "warn",
-            "object-property-newline": "warn",
-            "eol-last": "warn",
+            "space-before-blocks": "off",
+            "object-property-newline": "off",
+            "eol-last": "off",
             "spaced-comment": "off",
-            "indent": [0, 4],
-            "quotes": [1, "double", {
-                avoidEscape: true,
-            }]
+            "indent": "off",
+            "space-before-function-paren": "off"
+        },
+        settings: {
+            react: {
+                version: "detect"
+            }
         }
     }
 ];

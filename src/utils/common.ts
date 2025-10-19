@@ -152,7 +152,7 @@ export class ObjectUtils {
 
         const cloned = {} as T;
         for (const key in obj) {
-            if (obj.hasOwnProperty(key)) {
+            if (Object.prototype.hasOwnProperty.call(obj, key)) {
                 cloned[key] = this.deepClone(obj[key]);
             }
         }
@@ -195,7 +195,7 @@ export class StringUtils {
      * Convert camelCase to kebab-case
      */
     static kebabCase(str: string): string {
-        return str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
+        return str.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
     }
 
     /**
@@ -203,7 +203,7 @@ export class StringUtils {
      */
     static truncate(str: string, maxLength: number): string {
         if (str.length <= maxLength) return str;
-        return str.slice(0, maxLength - 3) + '...';
+        return str.slice(0, maxLength - 3) + "...";
     }
 
     /**

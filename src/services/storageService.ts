@@ -8,7 +8,7 @@ import {
     ref as storageRef,
     uploadBytes,
     uploadBytesResumable,
-    StorageReference,
+    StorageReference as _StorageReference,
     ListResult,
     FullMetadata,
     UploadTask

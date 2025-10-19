@@ -265,9 +265,9 @@ export const useCollectionForm = (firebaseApp: FirebaseApp): UseCollectionFormRe
             const stateFromConfig = convertConfigToFormState(data);
             applySnapshot(stateFromConfig);
             setSuccessMessage(null);
-        } catch (error: unknown) {
-            const errorMessage = error instanceof Error ? error.message : "Unexpected error loading the collection.";
-            setErrorMessage(errorMessage);
+        } catch (loadError: unknown) {
+            const loadErrorMessage = loadError instanceof Error ? loadError.message : "Unexpected error loading the collection.";
+            setErrorMessage(loadErrorMessage);
         } finally {
             setLoadingExisting(false);
         }
@@ -293,9 +293,9 @@ export const useCollectionForm = (firebaseApp: FirebaseApp): UseCollectionFormRe
 
             setSuccessMessage(`Collection "${sanitizedState.name}" saved successfully.`);
             applySnapshot(sanitizedState);
-        } catch (error: unknown) {
-            const errorMessage = error instanceof Error ? error.message : "Unexpected error saving the collection.";
-            setErrorMessage(errorMessage);
+        } catch (saveError: unknown) {
+            const saveErrorMessage = saveError instanceof Error ? saveError.message : "Unexpected error saving the collection.";
+            setErrorMessage(saveErrorMessage);
         } finally {
             setIsSubmitting(false);
         }

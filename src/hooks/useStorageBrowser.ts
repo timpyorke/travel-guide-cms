@@ -65,11 +65,11 @@ export const useStorageBrowser = (
             setUploadingFile(null);
             setUploadProgress(0);
             await refreshItems();
-        } catch (error: unknown) {
-            console.error("Upload error", error);
+        } catch (uploadError: unknown) {
+            console.error("Upload error", uploadError);
             setUploadingFile(null);
             setUploadProgress(0);
-            throw error;
+            throw uploadError;
         }
     }, [storageService, refreshItems]);
 
@@ -77,9 +77,9 @@ export const useStorageBrowser = (
         try {
             await storageService.createFolder(folderPath);
             await refreshItems();
-        } catch (error: unknown) {
-            console.error("Failed to create folder", error);
-            throw error;
+        } catch (folderError: unknown) {
+            console.error("Failed to create folder", folderError);
+            throw folderError;
         }
     }, [storageService, refreshItems]);
 
@@ -93,9 +93,9 @@ export const useStorageBrowser = (
                 await storageService.deleteFile(item.fullPath);
             }
             await refreshItems();
-        } catch (error: unknown) {
-            console.error("Failed to delete storage item", error);
-            throw error;
+        } catch (deleteError: unknown) {
+            console.error("Failed to delete storage item", deleteError);
+            throw deleteError;
         } finally {
             setDeletingPath(null);
         }
@@ -104,9 +104,9 @@ export const useStorageBrowser = (
     const getDownloadURL = useCallback(async (filePath: string) => {
         try {
             return await storageService.getDownloadURL(filePath);
-        } catch (error: unknown) {
-            console.error("Failed to get download URL", error);
-            throw error;
+        } catch (downloadError: unknown) {
+            console.error("Failed to get download URL", downloadError);
+            throw downloadError;
         }
     }, [storageService]);
 

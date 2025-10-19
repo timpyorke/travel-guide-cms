@@ -291,7 +291,7 @@ export const useCmsCollections = (firebaseApp: FirebaseApp | undefined | null, l
         const unsubscribe = onSnapshot(cmsCollectionsRef, (snapshot) => {
             const parsedCollections = snapshot.docs
                 .map(doc => snapshotToEntityCollection(doc, locale))
-                .filter((collection): collection is EntityCollection => !!collection);
+                .filter((parsedCollection): parsedCollection is EntityCollection => !!parsedCollection);
 
             setCollections(parsedCollections);
             setError(undefined);

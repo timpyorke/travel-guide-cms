@@ -14,7 +14,7 @@ export interface PropertyBase {
 }
 
 export interface StringProperty extends PropertyBase {
-    dataType: 'string';
+    dataType: "string";
     enumValues?: Record<string, string>;
     multiline?: boolean;
     markdown?: boolean;
@@ -23,35 +23,35 @@ export interface StringProperty extends PropertyBase {
 }
 
 export interface NumberProperty extends PropertyBase {
-    dataType: 'number';
+    dataType: "number";
     min?: number;
     max?: number;
     defaultValue?: number;
 }
 
 export interface BooleanProperty extends PropertyBase {
-    dataType: 'boolean';
+    dataType: "boolean";
     defaultValue?: boolean;
 }
 
 export interface DateProperty extends PropertyBase {
-    dataType: 'date';
-    mode: 'date' | 'date_time';
-    autoValue?: 'on_create' | 'on_update' | 'on_create_update';
+    dataType: "date";
+    mode: "date" | "date_time";
+    autoValue?: "on_create" | "on_update" | "on_create_update";
 }
 
 export interface ReferenceProperty extends PropertyBase {
-    dataType: 'reference';
+    dataType: "reference";
     path: string;
 }
 
 export interface ArrayProperty extends PropertyBase {
-    dataType: 'array';
+    dataType: "array";
     of: StringProperty | ReferenceProperty;
 }
 
 export interface MapProperty extends PropertyBase {
-    dataType: 'map';
+    dataType: "map";
     expanded?: boolean;
     properties: Record<string, PropertyDefinition>;
 }
@@ -73,8 +73,8 @@ export interface DynamicProperty {
     required?: boolean;
     validation?: { required: boolean };
     enumValues?: Record<string, string>;
-    mode?: 'date' | 'date_time';
-    autoValue?: 'on_create' | 'on_update' | 'on_create_update';
+    mode?: "date" | "date_time";
+    autoValue?: "on_create" | "on_update" | "on_create_update";
     path?: string;
     of?: PropertyArrayConfig;
     defaultValue?: string;
@@ -179,7 +179,7 @@ export interface PropertyFormData {
     localized: boolean;
     multiline: boolean;
     markdown: boolean;
-    autoValue?: 'on_create' | 'on_update' | 'on_create_update';
+    autoValue?: "on_create" | "on_update" | "on_create_update";
 }
 
 export interface LocalizationFormData {
@@ -209,11 +209,11 @@ export interface StorageBrowserItem {
     updated?: Date;
 }
 
-export type SelectionMode = 'file' | 'folder';
+export type SelectionMode = "file" | "folder";
 
 export interface StoragePickerState {
     propertyIndex: number;
-    target: 'storagePath' | 'defaultValue';
+    target: "storagePath" | "defaultValue";
     selectionMode: SelectionMode;
     initialPath?: string;
 }
@@ -264,7 +264,7 @@ export interface PropertyPayload {
     path?: string;
     of?: PropertyArrayConfig;
     storage?: StorageConfig;
-    autoValue?: 'on_create' | 'on_update' | 'on_create_update';
+    autoValue?: "on_create" | "on_update" | "on_create_update";
     defaultValue?: string;
     localized?: boolean;
     multiline?: boolean;
@@ -275,7 +275,7 @@ export interface PropertyArrayConfig {
     dataType: string;
     enumValues?: Record<string, string>;
     path?: string;
-    mode?: 'date' | 'date_time';
+    mode?: "date" | "date_time";
     storage?: StorageConfig;
 }
 
