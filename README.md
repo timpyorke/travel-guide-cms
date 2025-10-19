@@ -42,25 +42,31 @@ npm install
 yarn install
 ```
 
-### 2. Firebase Setup
+### 2. Environment Configuration
 
 1. Create a Firebase project at [Firebase Console](https://console.firebase.google.com)
 2. Enable the following services:
    - **Authentication** (Google and/or Email/Password providers)
    - **Firestore Database** (start in test mode, configure rules later)
    - **Storage** (start in test mode, configure rules later)
-3. Get your Firebase configuration from Project Settings → Web apps
-4. Copy your configuration to `src/firebase_config.ts`:
-   ```typescript
-   export const firebaseConfig = {
-     apiKey: "your-api-key",
-     authDomain: "your-project.firebaseapp.com",
-     projectId: "your-project-id",
-     storageBucket: "your-project.appspot.com",
-     messagingSenderId: "123456789",
-     appId: "your-app-id",
-   };
+3. **Setup Environment Variables**:
+   ```bash
+   # Copy the example environment file
+   cp .env.example .env
    ```
+4. **Configure Firebase**: Get your configuration from Firebase Console → Project Settings → Web apps
+5. **Update .env file** with your Firebase configuration:
+   ```bash
+   VITE_FIREBASE_API_KEY=your_firebase_api_key
+   VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+   VITE_FIREBASE_PROJECT_ID=your_project_id
+   VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+   VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+   VITE_FIREBASE_APP_ID=your_app_id
+   VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
+   ```
+
+> **🔒 Security Note**: Never commit your `.env` file. All sensitive configuration is loaded from environment variables and managed through GitHub Secrets in CI/CD.
 
 ### 3. Development Server
 
@@ -314,12 +320,40 @@ For production deployments:
 - Integration tests for Firebase operations
 - E2E testing for critical user flows
 
-## 📚 Additional Resources
+## � Security & Deployment
+
+### GitHub Secrets Configuration
+
+For production deployment, configure these secrets in your GitHub repository (Settings → Secrets and variables → Actions):
+
+| Secret Name                         | Description                   |
+| ----------------------------------- | ----------------------------- |
+| `VITE_FIREBASE_API_KEY`             | Firebase API Key              |
+| `VITE_FIREBASE_AUTH_DOMAIN`         | Firebase Auth Domain          |
+| `VITE_FIREBASE_PROJECT_ID`          | Firebase Project ID           |
+| `VITE_FIREBASE_STORAGE_BUCKET`      | Firebase Storage Bucket       |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID` | Firebase Messaging Sender ID  |
+| `VITE_FIREBASE_APP_ID`              | Firebase App ID               |
+| `VITE_FIREBASE_MEASUREMENT_ID`      | Firebase Measurement ID       |
+| `FIREBASE_TOKEN`                    | Firebase CLI deployment token |
+
+### Security Best Practices
+
+- ✅ **Environment Variables**: All configuration loaded from environment variables
+- ✅ **GitHub Secrets**: Production secrets managed through GitHub Actions
+- ✅ **Firebase Security Rules**: Granular access control for Firestore and Storage
+- ✅ **Authentication**: Domain restrictions and role-based access control
+- ❌ **No Hardcoded Secrets**: No API keys committed to version control
+
+For detailed security configuration, see the [Security Documentation](./docs/SECURITY.md).
+
+## �📚 Additional Resources
 
 - [FireCMS Documentation](https://firecms.co/docs) - Comprehensive CMS framework guide
 - [Firebase Web Setup](https://firebase.google.com/docs/web/setup) - Backend configuration
 - [Vite Documentation](https://vitejs.dev/guide/) - Build tool and development server
 - [TypeScript Handbook](https://www.typescriptlang.org/docs/) - Type system reference
 - [TailwindCSS](https://tailwindcss.com/docs) - Utility-first CSS framework
+- [Security Guide](./docs/SECURITY.md) - Complete security configuration guide
 
 For detailed implementation information, see the [CmsCollections documentation](./docs/CmsCollections.md).

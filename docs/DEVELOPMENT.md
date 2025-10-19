@@ -12,13 +12,19 @@
    npm install
    ```
 
-2. **Firebase Configuration**
+2. **Environment Configuration**
+   ```bash
+   # Copy the example environment file
+   cp .env.example .env
+   ```
+3. **Firebase Configuration**
 
    - Create Firebase project with Firestore, Storage, and Authentication
-   - Copy configuration to `src/firebase_config.ts`
+   - Get configuration from Firebase Console → Project Settings → Web apps
+   - Update `.env` file with your Firebase configuration values
    - Enable desired authentication providers
 
-3. **Start Development Server**
+4. **Start Development Server**
    ```bash
    npm run dev  # Starts on localhost:3000
    ```
