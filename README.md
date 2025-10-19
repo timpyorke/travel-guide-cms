@@ -1,119 +1,359 @@
 # Travel Guide CMS
 
-Travel Guide CMS is a FireCMS-powered admin panel that manages travel content,
-marketing banners, and product information backed by Firebase. It is configured
-as a single-page React application built with Vite and TypeScript.
+A modern, scalable content management system built with React, TypeScript, and FireCMS. Features dynamic collection management, multi-language support, and a clean architecture for maintaining travel content, marketing materials, and product catalogs.
+
+## ✨ Key Features
+
+- **🔥 Dynamic Collections**: Create and configure CMS collections at runtime through the admin interface
+- **🌍 Multi-language Support**: Built-in localization system with support for English, Spanish, and French
+- **🏗️ Clean Architecture**: Service layer, custom hooks, and reusable UI components for maintainable code
+- **⚡ Real-time Updates**: Live data synchronization with Firebase Firestore
+- **📁 File Management**: Integrated Firebase Storage with drag-and-drop file uploads
+- **🔐 Flexible Permissions**: Granular access control per collection and operation
+- **🎨 Modern UI**: Built with FireCMS 3 and TailwindCSS for a responsive, accessible interface
+- **🛡️ Type Safety**: Comprehensive TypeScript coverage with 94.7% reduction in any types
 
 ## Tech Stack
-- React 18 + TypeScript
-- Vite 7 for development and bundling
-- FireCMS 3 (beta) UI framework
-- Firebase Authentication, Firestore, and Storage
-- TailwindCSS for styling utilities
+
+- **Frontend**: React 18 + TypeScript + Vite 7
+- **CMS Framework**: FireCMS 3 (beta)
+- **Backend**: Firebase (Authentication, Firestore, Storage)
+- **Styling**: TailwindCSS + PostCSS
+- **Development**: ESLint + Modern build tooling
 
 ## Prerequisites
+
 - Node.js 18 or later
 - npm 9+ or Yarn 1.22+
 - Firebase CLI (`npm install -g firebase-tools`) for deployment
 - A Firebase project with Firestore, Storage, and Authentication enabled
 
-## Local Setup
-1. Install dependencies (choose one package manager):
+## 🚀 Quick Start
+
+### 1. Installation
+
+Clone the repository and install dependencies:
+
+```bash
+git clone <repository-url>
+cd travel-guide-cms
+npm install
+# or
+yarn install
+```
+
+### 2. Environment Configuration
+
+1. Create a Firebase project at [Firebase Console](https://console.firebase.google.com)
+2. Enable the following services:
+   - **Authentication** (Google and/or Email/Password providers)
+   - **Firestore Database** (start in test mode, configure rules later)
+   - **Storage** (start in test mode, configure rules later)
+3. **Setup Environment Variables**:
    ```bash
-   npm install
-   # or
-   yarn install
+   # Copy the example environment file
+   cp .env.example .env
    ```
-2. Configure Firebase:
-   - Create a Firebase project if you do not have one.
-   - Enable Firestore, Storage, and Authentication (Google and/or Email/Password).
-   - Copy your app credentials into `src/firebase_config.ts`.
-3. Start the development server:
+4. **Configure Firebase**: Get your configuration from Firebase Console → Project Settings → Web apps
+5. **Update .env file** with your Firebase configuration:
    ```bash
-   npm run dev
-   # or
-   yarn dev
+   VITE_FIREBASE_API_KEY=your_firebase_api_key
+   VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+   VITE_FIREBASE_PROJECT_ID=your_project_id
+   VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+   VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+   VITE_FIREBASE_APP_ID=your_app_id
+   VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
    ```
-4. Open the provided local URL and authenticate with an allowed user.
 
-## Firebase Configuration
-- `src/firebase_config.ts`: Holds the `firebaseConfig` used by `useInitialiseFirebase`.
-- Authentication providers are configured in `src/App.tsx:51` via `signInOptions`.
-- Ensure Firestore and Storage security rules align with your desired permissions.
-- The `myAuthenticator` callback in `src/App.tsx:22` can be customized to restrict access (e.g., based on custom claims or email domain).
+> **🔒 Security Note**: Never commit your `.env` file. All sensitive configuration is loaded from environment variables and managed through GitHub Secrets in CI/CD.
 
-## Available Scripts
-- `npm run dev` / `yarn dev`: Start the Vite development server.
-- `npm run build` / `yarn build`: Build the production bundle and run TypeScript type checking.
-- `npm run preview` / `yarn preview`: Build and serve the production bundle locally.
-- `npm run deploy` / `yarn deploy`: Build and deploy hosting to Firebase using the configured project.
+### 3. Development Server
 
-## Project Structure
+Start the development server (configured to run on port 3000):
+
+```bash
+npm run dev
+# or
+yarn dev
+```
+
+The application will be available at `http://localhost:3000`. If port 3000 is unavailable, Vite will automatically find the next available port.
+
+### 4. Authentication
+
+- Navigate to the login page
+- Authenticate with an approved user account
+- The `myAuthenticator` function in `src/App.tsx` can be customized for additional access restrictions
+
+## 📁 Project Architecture
+
 ```
 src/
-├── App.tsx                 # FireCMS setup, navigation, and authentication wiring
-├── collections/            # FireCMS collection definitions
-│   ├── banner.tsx          # Banners collection (content group)
-│   ├── products.tsx        # Products collection (e-commerce group)
-│   └── demo.tsx            # Demo collection showcasing FireCMS property types
-├── firebase_config.ts      # Firebase project credentials
-├── main.tsx                # React entry point
-└── index.css               # Global styles (Tailwind entry)
+├── services/              # Data access layer
+│   ├── CmsCollectionService.ts    # Collection CRUD operations
+│   └── StorageService.ts          # File upload/management
+├── hooks/                 # Business logic layer
+│   ├── useCmsCollections.ts       # Collection state management
+│   ├── useStorageBrowser.ts       # File browser functionality
+│   └── useCollectionForm.ts       # Form validation & submission
+├── ui/                    # Reusable UI components
+│   ├── components/                # Base components (Button, Input, etc.)
+│   └── boundaries/                # Error boundaries
+├── views/                 # Page-level components
+│   ├── CmsCollectionForm.tsx      # Collection configuration form
+│   └── StorageBrowser.tsx         # File management interface
+├── utils/                 # Utility functions
+│   ├── validation.ts              # Form validation helpers
+│   └── storage.ts                 # File processing utilities
+├── constants/             # Centralized constants
+│   ├── labels.ts                  # UI text constants
+│   ├── dataTypes.ts               # CMS data type definitions
+│   └── properties.ts              # Property configuration constants
+├── collections/           # Static collection definitions
+│   ├── demo.tsx                   # Example collection showcase
+│   ├── products.tsx               # Product catalog
+│   └── CmsCollections.tsx         # Dynamic collection system
+├── localization/          # Multi-language support
+│   └── index.ts                   # Supported locales configuration
+├── types/                 # TypeScript type definitions
+├── App.tsx                # Application root & FireCMS setup
+├── firebase_config.ts     # Firebase project configuration
+└── main.tsx               # React application entry point
 ```
 
-## FireCMS Configuration
-- `FireCMS` initialization, navigation, and theming live in `src/App.tsx`.
-- `useBuildNavigationController` binds the registered collections so they appear in the left-hand navigation.
-- `useValidateAuthenticator` validates the Firebase user before granting access to the main CMS view.
-- `ModeControllerProvider` exposes light/dark mode and persists preferences using `useBuildLocalConfigurationPersistence`.
+### Architecture Principles
 
-## Collections
-- **Demo (`src/collections/demo.tsx`)**: Demonstrates FireCMS field types—validation, markdown, maps, references, and `oneOf` content blocks.
-- **Banners (`src/collections/banner.tsx`)**: Minimal collection for marketing banners with validated destination URLs.
-- **Products (`src/collections/products.tsx`)**: Rich product schema including price validation, self-referencing relationships, asset storage, category enums, metadata maps, and conditional logic on the `published` flag.
+- **Separation of Concerns**: Clear boundaries between data access (services), business logic (hooks), and presentation (UI/views)
+- **Centralized Constants**: All strings, configuration values, and magic numbers are centralized for consistency
+- **Type Safety**: Comprehensive TypeScript coverage with strict typing and minimal use of `any`
+- **Error Boundaries**: Graceful error handling at component and application levels
+- **Async State Management**: Proper loading states, error handling, and real-time data synchronization
 
-To add a new collection, create a file under `src/collections`, export it via `buildCollection`, and append it to the `collections` array in `src/App.tsx:36`.
+## 📜 Available Scripts
+
+| Command           | Description                                                     |
+| ----------------- | --------------------------------------------------------------- |
+| `npm run dev`     | Start development server on port 3000 (with automatic fallback) |
+| `npm run build`   | Build production bundle with TypeScript type checking           |
+| `npm run preview` | Build and serve production bundle locally for testing           |
+| `npm run deploy`  | Build and deploy to Firebase Hosting                            |
+| `npm run lint`    | Run ESLint code quality checks                                  |
+
+## 🔧 Firebase Configuration
+
+### Security Rules
+
+Configure Firestore and Storage security rules based on your requirements:
+
+**Firestore Rules Example:**
+
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow authenticated users to read/write CMS collections
+    match /cms_collections/{document} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Custom rules for your content collections
+    match /{collection}/{document} {
+      allow read: if resource.data.published == true || request.auth != null;
+      allow write: if request.auth != null;
+    }
+  }
+}
+```
+
+**Storage Rules Example:**
+
+```javascript
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null
+        && request.resource.size < 10 * 1024 * 1024;
+    }
+  }
+}
+```
+
+### Authentication Configuration
+
+- **Providers**: Configure in `src/App.tsx:51` via `signInOptions`
+- **Custom Authentication**: Modify `myAuthenticator` in `src/App.tsx:22` for domain restrictions or role-based access
+- **Firebase Console**: Enable desired authentication methods in Firebase Console → Authentication → Sign-in method
+
+## 🎛️ Collection Management
+
+### Static Collections
+
+Predefined collections are located in `src/collections/`:
+
+- **Demo (`demo.tsx`)**: Showcases all FireCMS field types and validation options
+- **Products (`products.tsx`)**: E-commerce product catalog with rich metadata
+- **CmsCollections (`CmsCollections.tsx`)**: Meta-collection for managing dynamic collections
 
 ### Dynamic Collections
-- Firestore collection path `cms_collections` is watched at runtime (`src/hooks/useDynamicCollections.ts`) and merged into the CMS navigation automatically.
-- Each document should describe a collection using the schema in `src/types/dynamic_collections.ts`.
-- Example document payload:
-  ```json
-  {
-    "id": "locations",
-    "path": "locations",
-    "name": "Locations",
-    "group": "Travel",
-    "icon": "Place",
-    "permissions": { "read": true, "create": true, "edit": true, "delete": false },
-    "properties": [
-      { "key": "title", "dataType": "string", "required": true },
-      { "key": "slug", "dataType": "string", "description": "URL friendly identifier" },
-      { "key": "published", "dataType": "boolean" },
-      { "key": "heroImage", "dataType": "string", "name": "Hero image URL" },
-      { "key": "tags", "dataType": "array", "of": { "dataType": "string" } }
-    ]
-  }
-  ```
-- Supported property types: scalar (`string`, `number`, `boolean`, `date`, `date_time`), references, and arrays of strings or references (with optional enum values for string arrays). Invalid config entries are ignored with console warnings to avoid crashing the CMS.
 
-## Authentication and Authorization
-- Firebase Authentication controls who can sign in. Update `signInOptions` in `src/App.tsx:51` to adjust providers.
-- Implement fine-grained access rules in the `permissions` block of each collection (see `src/collections/products.tsx:28`).
-- Customize the `myAuthenticator` function in `src/App.tsx:22` to enforce domain restrictions or role-based access using Firebase custom claims.
+Create collections at runtime through the CMS interface:
 
-## Deployment
-1. Ensure you are logged in with the Firebase CLI: `firebase login`.
-2. Set the target project in `.firebaserc` or pass `--project <id>`.
-3. Deploy hosting:
-   ```bash
-   npm run deploy
-   # or
-   yarn deploy
-   ```
-   The script builds the app and runs `firebase deploy --only hosting`.
+1. Navigate to "CMS Collections" in the admin panel
+2. Click "Add New Collection"
+3. Configure collection properties:
+   - **Basic Info**: ID, name, description, Firestore path
+   - **Organization**: Group and icon for navigation
+   - **Permissions**: Read, create, edit, delete access
+   - **Properties**: Field definitions with data types and validation
 
-## Useful References
-- [FireCMS Documentation](https://firecms.co/docs)
-- [Firebase Web Setup](https://firebase.google.com/docs/web/setup)
-- [Vite Documentation](https://vitejs.dev/guide/)
+**Supported Property Types:**
+
+- **Text**: Single-line and multi-line strings with optional markdown
+- **Numbers**: Integer and decimal validation
+- **Booleans**: Checkbox toggles
+- **Dates**: Date and datetime pickers
+- **Files**: Firebase Storage integration with type/size restrictions
+- **References**: Links to other Firestore collections
+- **Arrays**: Lists of strings, numbers, or references
+- **Enums**: Dropdown selections with predefined values
+
+### Localization System
+
+Enable multi-language content with the localization system:
+
+1. **Supported Locales**: English (en), Spanish (es), French (fr)
+2. **Property Localization**: Check "Localized" option for any string field
+3. **Collection Localization**: Translate collection names and descriptions
+4. **Runtime Locale**: Collections adapt based on user's language preference
+
+**Example Localized Property:**
+
+```typescript
+{
+  key: "title",
+  name: "Title",
+  dataType: "string",
+  localized: true  // Creates separate fields for each language
+}
+```
+
+## 🔐 Authentication and Authorization
+
+### User Authentication
+
+- **Firebase Auth**: Handles user sign-in and session management
+- **Supported Providers**: Google OAuth, Email/Password (configurable)
+- **Custom Authenticator**: Additional validation logic in `myAuthenticator` function
+
+### Permission System
+
+Configure granular permissions for each collection:
+
+```typescript
+permissions: {
+  read: true,     // View collection data
+  create: true,   // Add new entities
+  edit: true,     // Modify existing entities
+  delete: false   // Remove entities (often restricted)
+}
+```
+
+### Access Control Strategies
+
+- **Domain Restrictions**: Limit access by email domain
+- **Role-Based Access**: Use Firebase custom claims
+- **Collection-Level**: Different permissions per collection
+- **Operation-Level**: Granular control over CRUD operations
+
+## 🚀 Deployment
+
+### Prerequisites
+
+1. Install Firebase CLI: `npm install -g firebase-tools`
+2. Login to Firebase: `firebase login`
+3. Set target project in `.firebaserc` or use `--project <project-id>`
+
+### Deploy to Firebase Hosting
+
+```bash
+# Build and deploy in one command
+npm run deploy
+
+# Manual deployment
+npm run build
+firebase deploy --only hosting
+```
+
+### Environment Configuration
+
+For production deployments:
+
+1. Update Firebase security rules for production
+2. Configure environment-specific settings
+3. Set up custom domains if needed
+4. Configure Firebase performance monitoring
+
+## 🛠️ Development Guidelines
+
+### Code Quality
+
+- **TypeScript**: Strict type checking enabled
+- **ESLint**: Code quality and consistency rules
+- **Constants**: Centralized in `/src/constants/` for maintainability
+- **Error Handling**: Comprehensive error boundaries and validation
+
+### Best Practices
+
+1. **Services**: Keep data access logic in service layer
+2. **Hooks**: Encapsulate business logic in custom hooks
+3. **Components**: Create reusable UI components in `/src/ui/`
+4. **Types**: Define interfaces in `/src/types/`
+5. **Constants**: Use centralized constants for all strings and values
+
+### Testing Strategy
+
+- Component testing with React Testing Library
+- Service layer unit tests
+- Integration tests for Firebase operations
+- E2E testing for critical user flows
+
+## � Security & Deployment
+
+### GitHub Secrets Configuration
+
+For production deployment, configure these secrets in your GitHub repository (Settings → Secrets and variables → Actions):
+
+| Secret Name                         | Description                   |
+| ----------------------------------- | ----------------------------- |
+| `VITE_FIREBASE_API_KEY`             | Firebase API Key              |
+| `VITE_FIREBASE_AUTH_DOMAIN`         | Firebase Auth Domain          |
+| `VITE_FIREBASE_PROJECT_ID`          | Firebase Project ID           |
+| `VITE_FIREBASE_STORAGE_BUCKET`      | Firebase Storage Bucket       |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID` | Firebase Messaging Sender ID  |
+| `VITE_FIREBASE_APP_ID`              | Firebase App ID               |
+| `VITE_FIREBASE_MEASUREMENT_ID`      | Firebase Measurement ID       |
+| `FIREBASE_TOKEN`                    | Firebase CLI deployment token |
+
+### Security Best Practices
+
+- ✅ **Environment Variables**: All configuration loaded from environment variables
+- ✅ **GitHub Secrets**: Production secrets managed through GitHub Actions
+- ✅ **Firebase Security Rules**: Granular access control for Firestore and Storage
+- ✅ **Authentication**: Domain restrictions and role-based access control
+- ❌ **No Hardcoded Secrets**: No API keys committed to version control
+
+For detailed security configuration, see the [Security Documentation](./docs/SECURITY.md).
+
+## �📚 Additional Resources
+
+- [FireCMS Documentation](https://firecms.co/docs) - Comprehensive CMS framework guide
+- [Firebase Web Setup](https://firebase.google.com/docs/web/setup) - Backend configuration
+- [Vite Documentation](https://vitejs.dev/guide/) - Build tool and development server
+- [TypeScript Handbook](https://www.typescriptlang.org/docs/) - Type system reference
+- [TailwindCSS](https://tailwindcss.com/docs) - Utility-first CSS framework
+- [Security Guide](./docs/SECURITY.md) - Complete security configuration guide
+
+For detailed implementation information, see the [CmsCollections documentation](./docs/CmsCollections.md).

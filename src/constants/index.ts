@@ -204,12 +204,12 @@ export const VALIDATION_FOLDER_NAME_NO_SLASH = "Folder name cannot contain '/'."
 export const VALIDATION_FOLDER_NAME_LETTERS_NUMBERS = "Folder name must include letters, numbers, dashes or underscores.";
 
 // Regex Patterns
-export const COLLECTION_ID_REGEX = /^[a-zA-Z0-9_\-]+$/;
+export const COLLECTION_ID_REGEX = /^[a-zA-Z0-9_-]+$/;
 export const FOLDER_NAME_SANITIZE_REGEX = /(^[\\.]+)|[^a-zA-Z0-9-_]/g;
 
 // Confirmation Messages
-export const CONFIRM_DELETE_FOLDER = 'and all its contents';
-export const CONFIRM_DELETE_ACTION = 'This action cannot be undone.';
+export const CONFIRM_DELETE_FOLDER = "and all its contents";
+export const CONFIRM_DELETE_ACTION = "This action cannot be undone.";
 
 // Default Values
 export const DEFAULT_NONE_OPTION = "None";

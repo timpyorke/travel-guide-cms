@@ -18,6 +18,8 @@
     "dev:alt": "vite --mode development --port 8080",
     "build": "vite build && tsc",
     "preview": "vite build && vite preview",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 50",
+    "lint:fix": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 50 --fix",
     "deploy": "vite build && firebase deploy --only hosting --project travel-guide-f6973"
   },
   "browserslist": {

@@ -1,11 +1,29 @@
+// Firebase configuration loaded from environment variables
 export const firebaseConfig = {
-    "projectId": "travel-guide-f6973",
-    "appId": "1:766228351603:web:dfa95e713248e60c49b806",
-    "storageBucket": "travel-guide-f6973.firebasestorage.app",
-    "apiKey": "AIzaSyBQk6gOafl1UG-f_NERIj3pnslwkcw9u7c",
-    "authDomain": "travel-guide-f6973.firebaseapp.com",
-    "messagingSenderId": "766228351603",
-    "measurementId": "G-5T5JDMV6W9",
-    "projectNumber": "766228351603",
-    "version": "2"
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+    appId: import.meta.env.VITE_FIREBASE_APP_ID,
+    measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
+};
+
+// Validate required environment variables
+const requiredEnvVars = [
+    "VITE_FIREBASE_API_KEY",
+    "VITE_FIREBASE_AUTH_DOMAIN",
+    "VITE_FIREBASE_PROJECT_ID",
+    "VITE_FIREBASE_STORAGE_BUCKET",
+    "VITE_FIREBASE_MESSAGING_SENDER_ID",
+    "VITE_FIREBASE_APP_ID"
+];
+
+const missingVars = requiredEnvVars.filter(varName => !import.meta.env[varName]);
+
+if (missingVars.length > 0) {
+    throw new Error(
+        `Missing required environment variables: ${missingVars.join(", ")}\n` +
+        "Please copy .env.example to .env and fill in your Firebase configuration."
+    );
 }

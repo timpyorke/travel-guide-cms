@@ -82,7 +82,7 @@ function AppContent() {
     // Use your own authentication logic here
     const myAuthenticator: Authenticator<FirebaseUserWrapper> = useCallback(async ({
         user,
-        authController
+        authController: _authController
     }) => {
 
         if (user?.email?.includes(FLANDERS_EMAIL_FILTER)) {
@@ -91,7 +91,7 @@ function AppContent() {
         }
 
         const idTokenResult = await user?.firebaseUser?.getIdTokenResult();
-        const userIsAdmin = idTokenResult?.claims[ADMIN_CLAIM] || user?.email?.endsWith(ADMIN_EMAIL_DOMAIN);
+        const _userIsAdmin = idTokenResult?.claims[ADMIN_CLAIM] || user?.email?.endsWith(ADMIN_EMAIL_DOMAIN);
 
         console.log(CONSOLE_LOG_ALLOWING_ACCESS, user);
 
@@ -184,6 +184,14 @@ function AppContent() {
         dataSourceDelegate: firestoreDelegate
     });
 
+    const customizationController = useCustomizationController() as CustomizationController | null;
+
+    useEffect(() => {
+        if (customizationController) {
+            customizationController.locale = activeLocale;
+        }
+    }, [customizationController, activeLocale]);
+
     if (firebaseConfigLoading || !firebaseApp) {
         return <>
             <CircularProgressCenter />
@@ -212,13 +220,9 @@ function AppContent() {
                 storageSource={storageSource}
             >
                 {({
-                    context,
+                    context: _context,
                     loading
                 }) => {
-                    const customizationController = useCustomizationController() as CustomizationController | null;
-                    if (customizationController) {
-                        customizationController.locale = activeLocale;
-                    }
 
                     if (loading || authLoading || cmsCollectionsLoading) {
                         return <CircularProgressCenter size={"large"} />;

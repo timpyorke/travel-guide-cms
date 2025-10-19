@@ -1,5 +1,5 @@
 import React from "react";
-import { LOADING_TEXT_SAVING } from "../../constants";
+import { LOADING_TEXT_SAVING as _LOADING_TEXT_SAVING } from "../../constants";
 
 export interface LoadingSpinnerProps {
     size?: "small" | "medium" | "large";

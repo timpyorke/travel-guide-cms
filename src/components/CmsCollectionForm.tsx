@@ -336,7 +336,7 @@ const validateForm = (state: FormState): string | null => {
     if (!state.collectionId) {
         return "Collection ID is required.";
     }
-    if (!/^[a-zA-Z0-9_\-]+$/.test(state.collectionId)) {
+    if (!/^[a-zA-Z0-9_-]+$/.test(state.collectionId)) {
         return "Collection ID can only contain letters, numbers, dashes, and underscores.";
     }
     if (!state.name) {
@@ -524,10 +524,10 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                     setErrorMessage(null);
                     setSuccessMessage(null);
                 }
-            } catch (error: unknown) {
+            } catch (loadError: unknown) {
                 if (!isCancelled) {
-                    const errorMessage = error instanceof Error ? error.message : "Unexpected error loading the collection.";
-                    setErrorMessage(errorMessage);
+                    const loadErrorMessage = loadError instanceof Error ? loadError.message : "Unexpected error loading the collection.";
+                    setErrorMessage(loadErrorMessage);
                 }
             } finally {
                 if (!isCancelled) {
@@ -777,13 +777,13 @@ export const CmsCollectionForm: React.FC<CmsCollectionFormProps> = ({
                 const defaultState = createEmptyFormState();
                 applySnapshot(defaultState);
             }
-        } catch (error: unknown) {
-            console.error("Error saving collection", error);
-            const errorMessage = error instanceof Error ? error.message : "Unexpected error saving the collection.";
-            setErrorMessage(errorMessage);
+        } catch (saveError: unknown) {
+            console.error("Error saving collection", saveError);
+            const saveErrorMessage = saveError instanceof Error ? saveError.message : "Unexpected error saving the collection.";
+            setErrorMessage(saveErrorMessage);
             snackbar.open({
                 type: "error",
-                message: errorMessage,
+                message: saveErrorMessage,
                 autoHideDuration: 5000
             });
         } finally {
